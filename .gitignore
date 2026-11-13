@@ -1,0 +1,16 @@
+# Build output
+bin/
+obj/
+dist/
+*.user
+
+# Local build references: game/interop assemblies are Sports Interactive / Unity
+# property and must never be committed.
+lib/
+interop/
+*.dll
+
+# Local tooling
+.claude/
+.vs/
+.idea/
