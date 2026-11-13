@@ -150,10 +150,17 @@ namespace SeasonReview
                 data.Season = Text(r.Get(SeasonSpec.Division + ".SeasonName"));
                 data.LeaguePosition = Positive(Int(r.Get(SeasonSpec.Team + ".LeaguePosition")));
                 data.LeaguePositionText = Text(r.Get(SeasonSpec.Team + ".LeaguePositionString"));
-                data.MediaPrediction = Int(r.Get(SeasonSpec.Team + ".MediaExpectedPosition"));
                 if (string.IsNullOrEmpty(data.Club)) throw new InvalidOperationException("club name missing");
             });
 
+            Section("media", () =>
+            {
+                // Only the prediction screen's own value; no value means no sentence.
+                foreach (var row in r.Items(SeasonSpec.MediaPredictions))
+                    if (Text(row.Get("Team.Name")) == data.Club)
+                        data.MediaPrediction = Positive(Int(row.Get("MediaExpectedPosition")));
+            });
+            data.Unavailable.Remove("media"); // optional: never shown as "data unavailable"
             Section("matches", () => BuildMatches(r, data));
             Section("league", () => BuildLeague(r, data, warn));
             Section("objectives", () => BuildObjectives(r, data));

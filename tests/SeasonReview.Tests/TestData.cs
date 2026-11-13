@@ -57,7 +57,6 @@ namespace SeasonReview.Tests
             V(SeasonSpec.Team + ".Name", Link(Club));
             V(SeasonSpec.Team + ".LongName", Link(Club + " FC"));
             V(SeasonSpec.Team + ".LeaguePosition", "2");
-            V(SeasonSpec.Team + ".MediaExpectedPosition", "3");
             V(SeasonSpec.Division + ".Name", Link(League));
             V(SeasonSpec.Division + ".SeasonName", "2026/27");
             V(SeasonSpec.Club + ".OverallBalance", "30000000");
@@ -128,11 +127,16 @@ namespace SeasonReview.Tests
             var objectives = new GameRecord();
             objectives.Lists[SeasonSpec.Objectives] = new List<GameRecord>
             {
-                Objective("Challenge for the league title", 1, League, "The board are delighted."),
+                Objective("Challenge for the " + League + " title", 1, League, "The board are delighted."),
                 Objective("Work within wage budget", 2, null, "Fine."),
                 Objective("Maintain a title challenge", 1, League, ""), // a future season: no verdict yet
             };
             r.Lists[SeasonSpec.Objectives] = new List<GameRecord> { objectives };
+
+            r.Lists[SeasonSpec.MediaPredictions] = new List<GameRecord>
+            {
+                Prediction("Rival FC", 1), Prediction("Third United", 2), Prediction(Club, 3),
+            };
 
             r.Lists[SeasonSpec.BalanceHistory] = new List<GameRecord>
             {
@@ -142,7 +146,7 @@ namespace SeasonReview.Tests
 
             var injury = new GameRecord();
             injury.Values["Player.Name"] = Link("Keeper Two");
-            injury.Values["InjuryDescription"] = "A broken toe";
+            injury.Values["InjuryDescription"] = "A broken toe"; // in the Turkish dictionary
             injury.Values["InjuryDurationDays"] = "21";
             injury.Values["IsActive"] = "False";
             injury.Values["InjuryDate"] = GameDate(2026, 9, 1);
@@ -199,6 +203,14 @@ namespace SeasonReview.Tests
             o.Values["VisionObjectivePerformance"] = verdict;
             o.Values["Competition.Name"] = competition == null ? null : Link(competition);
             return o;
+        }
+
+        private static GameRecord Prediction(string team, int position)
+        {
+            var p = new GameRecord();
+            p.Values["Team.Name"] = Link(team);
+            p.Values["MediaExpectedPosition"] = position.ToString();
+            return p;
         }
 
         private static GameRecord Point(int y, int m, int d, double value)

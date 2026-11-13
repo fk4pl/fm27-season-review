@@ -103,7 +103,7 @@ players.pots.text = {player}: {apps}, average rating {rating}, {goals} and {assi
 players.pots.how = Chosen as the highest average rating among players with at least {min} (two thirds of the club's {matches}); ties go to goals plus assists.
 players.scorers = Top scorers
 players.assists = Most assists
-players.ratings = Best average rating (at least a third of the most-used player's appearances)
+players.ratings = Best average rating (at least {min})
 players.young = Young players (21 and under)
 players.name = Player
 players.age = Age
@@ -155,5 +155,14 @@ injuries.none = No injuries this season.
 
 board.board = Board
 board.supporters = Supporters
-board.positive = Positives
-board.negative = Concerns
+board.board.positive = Board: positives
+board.board.negative = Board: concerns
+board.supporters.positive = Supporters: positives
+board.supporters.negative = Supporters: concerns
+
+# Game-text dictionary (optional): translate text that the game gives in its own language.
+#   objective: <board objective as the game writes it> = <translation>
+#   injury: <injury as the game writes it> = <translation>
+# Matching ignores case and a leading "a", "an" or "the". {name} matches any words and can be
+# reused in the translation. Text that matches nothing is shown as the game gives it.
+# English needs no entries; see tr.txt for an example.

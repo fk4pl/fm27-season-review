@@ -18,6 +18,7 @@ namespace SeasonReview
         public const string Stages = "Stages";
         public const string AllStages = "AllStages";
         public const string StageChildren = "StageChildren";
+        public const string MediaPredictions = "MediaPredictions";
         public const string LeagueTable = "LeagueTable";
         public const string Transfers = "Transfers";
         public const string TransfersIn = "Division.SeasonTransferInfo.SeasonTransfersInPlayers";
@@ -42,7 +43,6 @@ namespace SeasonReview
             var spec = new Spec().Value(
                 "CurrentGameDate", "GameName", "GameStartDate",
                 Team + ".Name", Team + ".LongName", Team + ".LeaguePosition", Team + ".LeaguePositionString",
-                Team + ".MediaExpectedPosition",
                 Division + ".Name", Division + ".SeasonName",
 
                 Club + ".OverallBalance", Club + ".FinancialStatus",
@@ -93,6 +93,11 @@ namespace SeasonReview
             spec.Object(Division, new Spec()
                 .Context("Year", seasonYear).Context("NextSeason", false)
                 .List("AllStages", seasonStage, 12, AllStages), AllStages);
+
+            // The league's media prediction, as on League Table > Media Prediction. (The team's
+            // own MediaExpectedPosition is not the pre-season prediction: at the end of the
+            // season it showed the final position.)
+            spec.List(Division + ".OddsLeagueTableList", new Spec().Value("Team.Name", "MediaExpectedPosition"), 40, MediaPredictions);
 
             // The club's transfers this season, as listed for its division.
             var transfer = new Spec().Value("Player.Name", "BuyingTeam.Name", "SellingTeam.Name", "Fee", "IsOnLoan", "Date");

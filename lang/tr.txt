@@ -44,7 +44,7 @@ title = {club}: {season} Sezon Değerlendirmesi
 subtitle = {division} · rapor tarihi {date}
 interim = Ara rapor: lig sezonu henüz bitmedi ({remaining} kaldı).
 footer.generated = Season Review {version} tarafından {date} (oyun içi tarih) tarihinde oluşturuldu.
-footer.language = Yönetim ve taraftar görüşleri, hedefler, turnuva adları, sakatlık adları ve mali durum oyundan alıntıdır ve oyunun dilindedir; mali durumda yalnızca bilinen değerler Türkçeye çevrilir.
+footer.language = Yönetim ve taraftar görüşleri ile turnuva adları oyundan alıntıdır ve oyunun dilindedir. Yönetim hedefleri, sakatlık adları ve mali durum, lang/tr.txt sözlüğünde karşılığı varsa Türkçeye çevrilir; yoksa oyundaki gibi kalır.
 footer.money = Tutarlar oyunda kullandığınız para biriminde gösterilir.
 footer.seealso = Sezon sonu ödülleri, sezonun en iyi 11'i ve aylık finans raporları oyunun kendisinde yer almaya devam ediyor.
 
@@ -103,7 +103,7 @@ players.pots.text = {player}: {apps}, ortalama puan {rating}, {goals} ve {assist
 players.pots.how = Seçim: kulübün maçlarının en az üçte ikisinde (en az {min}; toplam {matches}) forma giyenler arasında en yüksek ortalama puan; eşitlikte gol ve asist toplamı belirleyici.
 players.scorers = En çok gol atanlar
 players.assists = En çok asist yapanlar
-players.ratings = En yüksek ortalama puan (en çok oynayanın maç sayısının en az üçte biri)
+players.ratings = En yüksek ortalama puan (en az {min})
 players.young = Genç oyuncular (21 yaş ve altı)
 players.name = Oyuncu
 players.age = Yaş
@@ -165,5 +165,90 @@ injuries.none = Bu sezon sakatlık yaşanmadı.
 
 board.board = Yönetim
 board.supporters = Taraftarlar
-board.positive = Olumlu
-board.negative = Eleştiriler
+board.board.positive = Yönetim: olumlu
+board.board.negative = Yönetim: eleştiriler
+board.supporters.positive = Taraftarlar: olumlu
+board.supporters.negative = Taraftarlar: eleştiriler
+
+# ---------------------------------------------------------------------------------------
+# Oyun metni sözlüğü: oyunun İngilizce verdiği metinleri çevirir. Topluluk genişletebilir.
+#   objective: <oyundaki yönetim hedefi> = <çeviri>
+#   injury: <oyundaki sakatlık adı> = <çeviri>
+# Eşleşme büyük/küçük harfe ve baştaki "a", "an", "the" sözcüğüne bakmaz. {ad} herhangi bir
+# metinle eşleşir ve çeviride aynen kullanılabilir. Eşleşmeyen metin oyundaki gibi kalır.
+# Yönetim ve taraftar cümleleri bilerek çevrilmiyor.
+# ---------------------------------------------------------------------------------------
+
+# Yönetim hedefleri (yarışma adı {competition} olarak geçer)
+objective: Win the {competition} = {competition} şampiyonu ol
+objective: Challenge for the {competition} title = {competition} şampiyonluğu için mücadele et
+objective: Maintain a {competition} title challenge = {competition} şampiyonluk yarışında kal
+objective: Challenge for the {competition} = {competition} için mücadele et
+objective: Be competitive in the {competition} = {competition} turnuvasında rekabetçi ol
+objective: Record a {competition} top-half finish = {competition} puan tablosunun ilk yarısında bitir
+objective: Finish in the top half of the {competition} = {competition} puan tablosunun ilk yarısında bitir
+objective: Reach the {competition} proper = {competition} ana aşamasına kal
+objective: Qualify for the {competition} = {competition} turnuvasına katılma hakkı kazan
+objective: Reach the knockout stage of the {competition} = {competition} eleme turlarına kal
+objective: Reach the quarter-finals of the {competition} = {competition} çeyrek finaline kal
+objective: Reach the semi-finals of the {competition} = {competition} yarı finaline kal
+objective: Reach the final of the {competition} = {competition} finaline kal
+objective: Avoid relegation from the {competition} = Küme düşmekten kaçın ({competition})
+objective: Gain promotion from the {competition} = Üst lige yüksel ({competition})
+objective: Fight for promotion from the {competition} = Üst lige çıkış için mücadele et ({competition})
+
+# Sakatlıklar
+injury: twisted ankle = Burkulmuş ayak bileği
+injury: sprained ankle = Ayak bileği burkulması
+injury: bruised ankle = Ayak bileğinde ezilme
+injury: broken ankle = Ayak bileği kırığı
+injury: damaged ankle ligaments = Ayak bileği bağlarında hasar
+injury: torn ankle ligaments = Ayak bileği bağlarında yırtık
+injury: tight hamstring = Arka adalede gerginlik
+injury: strained hamstring = Arka adale zorlanması
+injury: pulled hamstring = Arka adale çekmesi
+injury: torn hamstring = Arka adale yırtığı
+injury: tight groin = Kasıkta gerginlik
+injury: groin strain = Kasık zorlanması
+injury: pulled groin = Kasık çekmesi
+injury: tight thigh = Uylukta gerginlik
+injury: thigh strain = Uyluk zorlanması
+injury: bruised thigh = Uylukta ezilme
+injury: torn thigh muscle = Uyluk kası yırtığı
+injury: tight calf = Baldırda gerginlik
+injury: calf strain = Baldır zorlanması
+injury: torn calf muscle = Baldır kası yırtığı
+injury: twisted knee = Burkulmuş diz
+injury: bruised knee = Dizde ezilme
+injury: damaged knee ligaments = Diz bağlarında hasar
+injury: torn knee ligaments = Diz bağlarında yırtık
+injury: torn cruciate ligament = Çapraz bağ kopması
+injury: knee cartilage damage = Diz kıkırdağında hasar
+injury: dislocated kneecap = Diz kapağı çıkığı
+injury: broken foot = Ayak kırığı
+injury: bruised foot = Ayakta ezilme
+injury: broken metatarsal = Metatars kırığı
+injury: broken toe = Ayak parmağı kırığı
+injury: plantar fasciitis = Taban zarı iltihabı
+injury: shin splints = Kaval kemiği ağrısı
+injury: achilles tendinitis = Aşil tendiniti
+injury: ruptured achilles tendon = Aşil tendonu kopması
+injury: back spasms = Sırt spazmı
+injury: sore back = Sırt ağrısı
+injury: slipped disc = Bel fıtığı
+injury: sports hernia = Spor fıtığı
+injury: abdominal strain = Karın kası zorlanması
+injury: concussion = Beyin sarsıntısı
+injury: dead leg = Bacakta ezilme
+injury: cut leg = Bacakta kesik
+injury: broken arm = Kol kırığı
+injury: broken wrist = El bileği kırığı
+injury: dislocated shoulder = Omuz çıkığı
+injury: broken collarbone = Köprücük kemiği kırığı
+injury: broken nose = Burun kırığı
+injury: bruised ribs = Kaburgalarda ezilme
+injury: broken ribs = Kaburga kırığı
+injury: virus = Virüs enfeksiyonu
+injury: flu = Grip
+injury: cold = Soğuk algınlığı
+injury: food poisoning = Gıda zehirlenmesi

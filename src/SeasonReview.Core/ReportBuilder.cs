@@ -90,7 +90,8 @@ namespace SeasonReview
             else
             {
                 var table = new Table { Headers = new[] { _s.Get("summary.objective"), _s.Get("summary.verdict") } };
-                foreach (var o in _d.Objectives) table.Rows.Add(new[] { o.Name, o.BoardView ?? "-" });
+                foreach (var o in _d.Objectives)
+                    table.Rows.Add(new[] { _s.GameText("objective", o.Name, ("competition", o.Competition)), o.BoardView ?? "-" });
                 section.Add(table);
             }
 
@@ -183,15 +184,17 @@ namespace SeasonReview
                 });
 
             var squad = _d.Squad.ToList();
-            int most = squad.Count == 0 ? 0 : squad.Max(p => p.Appearances);
             bool flagged = false;
             flagged |= PlayerTable(section, "players.scorers",
                 squad.Where(p => p.Goals > 0).OrderByDescending(p => p.Goals).ThenBy(p => p.Appearances).Take(5));
             flagged |= PlayerTable(section, "players.assists",
                 squad.Where(p => p.Assists > 0).OrderByDescending(p => p.Assists).ThenBy(p => p.Appearances).Take(5));
+            // Same threshold as the player of the season: two thirds of the club's matches.
+            int minimum = _d.PlayerOfTheSeasonMinimum;
             flagged |= PlayerTable(section, "players.ratings",
-                squad.Where(p => p.AverageRating > 0 && p.Appearances * 3 >= most)
-                    .OrderByDescending(p => p.AverageRating).Take(5));
+                squad.Where(p => p.AverageRating > 0 && p.Appearances >= Math.Max(1, minimum))
+                    .OrderByDescending(p => p.AverageRating).ThenByDescending(p => p.Goals + p.Assists).Take(5),
+                ("min", _s.Count(minimum, "appearance")));
             flagged |= PlayerTable(section, "players.young",
                 squad.Where(p => p.Age > 0 && p.Age <= 21 && p.Appearances > 0).OrderByDescending(p => p.Minutes));
             if (flagged || (pots != null && pots.JoinedMidSeason))
@@ -284,7 +287,7 @@ namespace SeasonReview
             foreach (var i in _d.Injuries.OrderByDescending(i => i.Active).ThenByDescending(i => i.Days).Take(5))
                 table.Rows.Add(new[]
                 {
-                    i.Player, i.Description ?? "-", _s.Date(i.Date),
+                    i.Player, i.Description == null ? "-" : _s.GameText("injury", i.Description), _s.Date(i.Date),
                     i.Active ? _s.Get("injuries.ongoing") : _s.Count(i.Days, "day"),
                 });
             section.Add(table);
@@ -324,22 +327,23 @@ namespace SeasonReview
             {
                 var positives = new Bullets();
                 positives.Items.AddRange(c.Highlights);
-                section.Add(new Subheading { Text = _s.Get("board.positive") });
+                section.Add(new Subheading { Text = _s.Get(titleKey + ".positive") });
                 section.Add(positives);
             }
             if (c.Criticism.Count > 0)
             {
                 var concerns = new Bullets();
                 concerns.Items.AddRange(c.Criticism);
-                section.Add(new Subheading { Text = _s.Get("board.negative") });
+                section.Add(new Subheading { Text = _s.Get(titleKey + ".negative") });
                 section.Add(concerns);
             }
         }
 
         /// <returns>True if a listed player joined during the season (marked with *).</returns>
-        private bool PlayerTable(ReportSection section, string titleKey, IEnumerable<PlayerSeason> players)
+        private bool PlayerTable(ReportSection section, string titleKey, IEnumerable<PlayerSeason> players,
+            params (string Name, object Value)[] titleArgs)
         {
-            section.Add(new Subheading { Text = _s.Get(titleKey) });
+            section.Add(new Subheading { Text = _s.Format(titleKey, titleArgs) });
             var list = players.ToList();
             if (list.Count == 0) { section.Add(new Paragraph { Text = _s.Get("common.none") }); return false; }
             var table = new Table

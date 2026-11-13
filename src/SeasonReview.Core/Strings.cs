@@ -107,6 +107,89 @@ namespace SeasonReview
             return Defines(key) ? Get(key) : value;
         }
 
+        private readonly Dictionary<string, (Dictionary<string, string> Exact, List<(System.Text.RegularExpressions.Regex Pattern, string Translation)> Patterns)> _dictionaries = new();
+
+        /// <summary>
+        /// Translates text the game gives in its own language, using "&lt;category&gt;: &lt;game text&gt; =
+        /// &lt;translation&gt;" lines of this language's file (e.g. "injury: sprained ankle = ...").
+        /// Matching ignores case and a leading "a", "an" or "the". A "{name}" in the game text
+        /// matches any words and can be reused in the translation, e.g.
+        /// "objective: Challenge for the {competition} title = {competition} şampiyonluğu için mücadele et".
+        /// Text with no match is returned unchanged. Only the language's own file is used, so
+        /// the English report is never affected.
+        /// </summary>
+        /// <param name="known">Placeholder values known from the game (e.g. the objective's
+        /// competition): a pattern only matches if its placeholder equals the known value, so
+        /// "Win the {competition}" cannot match "Win the board's respect". A known value of
+        /// null means the placeholder cannot match at all.</param>
+        public string GameText(string category, string text, params (string Name, string Value)[] known)
+        {
+            if (string.IsNullOrEmpty(text)) return text;
+            var (exact, patterns) = Dictionary(category);
+            if (exact.TryGetValue(Normalise(text), out var translation)) return translation;
+            foreach (var (pattern, template) in patterns)
+            {
+                var match = pattern.Match(text.Trim());
+                if (!match.Success) continue;
+                bool consistent = true;
+                foreach (var (name, value) in known)
+                {
+                    var group = match.Groups[name];
+                    if (group.Success && (value == null || !string.Equals(group.Value.Trim(), value.Trim(), StringComparison.OrdinalIgnoreCase)))
+                        consistent = false;
+                }
+                if (!consistent) continue;
+                var result = template;
+                foreach (var name in pattern.GetGroupNames())
+                    if (!int.TryParse(name, out _)) result = result.Replace("{" + name + "}", match.Groups[name].Value);
+                return result;
+            }
+            return text;
+        }
+
+        private (Dictionary<string, string>, List<(System.Text.RegularExpressions.Regex, string)>) Dictionary(string category)
+        {
+            if (_dictionaries.TryGetValue(category, out var cached)) return cached;
+            var exact = new Dictionary<string, string>(StringComparer.Ordinal);
+            var patterns = new List<(System.Text.RegularExpressions.Regex, string, int)>();
+            string prefix = category + ":";
+            foreach (var pair in _values)
+            {
+                if (!pair.Key.StartsWith(prefix, StringComparison.Ordinal)) continue;
+                var source = pair.Key.Substring(prefix.Length).Trim();
+                if (source.IndexOf('{') < 0) { exact[Normalise(source)] = pair.Value; continue; }
+
+                // "{name}" becomes a named group; everything else must match literally.
+                var regex = new StringBuilder("^(?:(?:a|an|the)\\s+)?");
+                int literal = 0;
+                foreach (System.Text.RegularExpressions.Match part in
+                         System.Text.RegularExpressions.Regex.Matches(StripArticle(source), @"\{([a-z]+)\}|[^{]+|\{"))
+                {
+                    if (part.Groups[1].Success) regex.Append("(?<").Append(part.Groups[1].Value).Append(">.+?)");
+                    else { regex.Append(System.Text.RegularExpressions.Regex.Escape(part.Value)); literal += part.Value.Length; }
+                }
+                regex.Append('$');
+                patterns.Add((new System.Text.RegularExpressions.Regex(regex.ToString(),
+                    System.Text.RegularExpressions.RegexOptions.IgnoreCase | System.Text.RegularExpressions.RegexOptions.CultureInvariant), pair.Value, literal));
+            }
+            // Most specific first, so "Challenge for the {c} title" wins over "Challenge for the {c}".
+            patterns.Sort((a, b) => b.Item3.CompareTo(a.Item3));
+            var result = (exact, patterns.ConvertAll(p => (p.Item1, p.Item2)));
+            _dictionaries[category] = result;
+            return result;
+        }
+
+        private static string StripArticle(string text)
+        {
+            var t = text.Trim();
+            foreach (var article in new[] { "a ", "an ", "the " })
+                if (t.StartsWith(article, StringComparison.OrdinalIgnoreCase)) return t.Substring(article.Length).TrimStart();
+            return t;
+        }
+
+        private static string Normalise(string text) =>
+            string.Join(" ", StripArticle(text).Split((char[])null, StringSplitOptions.RemoveEmptyEntries)).ToLowerInvariant();
+
         private static readonly System.Text.RegularExpressions.Regex DecimalPoint =
             new System.Text.RegularExpressions.Regex(@"(?<=\d)\.(?=\d)");
 

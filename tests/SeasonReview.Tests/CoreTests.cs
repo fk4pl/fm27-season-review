@@ -144,6 +144,32 @@ namespace SeasonReview.Tests
             Assert.Equal("Okay", TestData.English().GameValue("finances.status.value", "Okay"));
         }
 
+        [Theory]
+        [InlineData("Reach the Europa League proper", "Europa League", "Europa League ana aşamasına kal")]
+        [InlineData("Record a Süper Lig top-half finish", "Süper Lig", "Süper Lig puan tablosunun ilk yarısında bitir")]
+        [InlineData("Be competitive in the Türkiye Kupası", "Türkiye Kupası", "Türkiye Kupası turnuvasında rekabetçi ol")]
+        [InlineData("Challenge for the Süper Lig title", "Süper Lig", "Süper Lig şampiyonluğu için mücadele et")]
+        [InlineData("Challenge for the Türkiye Kupası", "Türkiye Kupası", "Türkiye Kupası için mücadele et")]
+        [InlineData("Win the board's respect", null, "Win the board's respect")]            // no competition: unchanged
+        [InlineData("Win the Süper Lig", "Türkiye Kupası", "Win the Süper Lig")]                // competition disagrees: unchanged
+        public void TurkishObjectives(string game, string competition, string expected) =>
+            Assert.Equal(expected, TestData.Turkish().GameText("objective", game, ("competition", competition)));
+
+        [Theory]
+        [InlineData("A sports hernia", "Spor fıtığı")]
+        [InlineData("A twisted ankle", "Burkulmuş ayak bileği")]
+        [InlineData("a TIGHT  hamstring", "Arka adalede gerginlik")]
+        [InlineData("A mysterious ailment", "A mysterious ailment")]
+        public void TurkishInjuries(string game, string expected) =>
+            Assert.Equal(expected, TestData.Turkish().GameText("injury", game));
+
+        [Fact]
+        public void EnglishReportLeavesGameTextAlone()
+        {
+            Assert.Equal("A sports hernia", TestData.English().GameText("injury", "A sports hernia"));
+            Assert.Equal("Reach the Europa League proper", TestData.English().GameText("objective", "Reach the Europa League proper"));
+        }
+
         [Fact]
         public void PluralFallsBackToOtherWhenNoSingularGiven()
         {
@@ -227,7 +253,7 @@ namespace SeasonReview.Tests
         public void ObjectivesKeepOnlyThisSeasonsCompetitionTargets()
         {
             var o = Assert.Single(Build().Objectives);
-            Assert.Equal("Challenge for the league title", o.Name);
+            Assert.Equal("Challenge for the Example League title", o.Name);
             Assert.Equal("The board are delighted.", o.BoardView);
         }
 
@@ -539,6 +565,41 @@ namespace SeasonReview.Tests
         }
 
         [Fact]
+        public void MediaPredictionComesFromThePredictionTableOnly()
+        {
+            var raw = TestData.Season();
+            raw.Values[SeasonSpec.Team + ".MediaExpectedPosition"] = "2"; // the team's own value is ignored
+            var d = SeasonDataBuilder.Build(raw, _ => { });
+            Assert.Equal(3, d.MediaPrediction);
+
+            raw.Lists.Remove(SeasonSpec.MediaPredictions);
+            d = SeasonDataBuilder.Build(raw, _ => { });
+            Assert.Null(d.MediaPrediction);
+            Assert.DoesNotContain("media", d.Unavailable);
+            var md = MarkdownRenderer.Render(ReportBuilder.Build(d, TestData.English(), TestData.Money, "test"));
+            Assert.DoesNotContain("media", md);
+        }
+
+        [Fact]
+        public void RatingTableUsesThePlayerOfTheSeasonThreshold()
+        {
+            var md = MarkdownRenderer.Render(Document(TestData.English()));
+            Assert.Contains("### Best average rating (at least 6 appearances)", md);
+            var ratings = md.Substring(md.IndexOf("### Best average rating", StringComparison.Ordinal));
+            ratings = ratings.Substring(0, ratings.IndexOf("### Young", StringComparison.Ordinal));
+            Assert.DoesNotContain("Sub Three", ratings); // 4 appearances
+        }
+
+        [Fact]
+        public void TurkishReportTranslatesKnownObjectivesAndInjuries()
+        {
+            var md = MarkdownRenderer.Render(Document(TestData.Turkish()));
+            Assert.Contains("Example League şampiyonluğu için mücadele et", md);
+            Assert.Contains("Ayak parmağı kırığı", md);
+            Assert.Contains("Yönetim: olumlu", md);
+        }
+
+        [Fact]
         public void LoansAndLateArrivalsAreShownSeparately()
         {
             var md = MarkdownRenderer.Render(Document(TestData.English()));
@@ -564,7 +625,7 @@ namespace SeasonReview.Tests
         public void FeedbackListsHaveSubheadings()
         {
             var board = Document(TestData.English()).Sections.Single(s => s.Id == "board");
-            var positives = board.Blocks.FindIndex(b => b is Subheading h && h.Text == "Positives");
+            var positives = board.Blocks.FindIndex(b => b is Subheading h && h.Text == "Board: positives");
             Assert.True(positives > 0);
             Assert.IsType<Bullets>(board.Blocks[positives + 1]);
             Assert.DoesNotContain(board.Blocks, b => b is Paragraph);
