@@ -32,7 +32,7 @@ namespace SeasonReview
                 Subtitle = _s.Format("subtitle", ("division", _d.Division ?? "?"), ("date", _s.Date(_d.Date))),
             };
             if (!_d.SeasonComplete)
-                doc.Notice = _s.Format("interim", ("remaining", N(_d.LeagueFixturesRemaining)));
+                doc.Notice = _s.Format("interim", ("remaining", _s.Count(_d.LeagueFixturesRemaining, "leaguematch")));
 
             if (_d.Total != null)
             {
@@ -71,8 +71,8 @@ namespace SeasonReview
                 {
                     _s.Format(_d.SeasonComplete ? "summary.finished" : "summary.current",
                         ("club", _d.Club), ("division", _d.Division), ("position", _s.Ordinal(_d.LeaguePosition.Value)),
-                        ("teams", N(_d.LeagueSize ?? 0)), ("points", N(_d.PointsFromTable ?? _d.Total.Points)),
-                        ("played", N(_d.Total.Played))),
+                        ("teams", N(_d.LeagueSize ?? 0)), ("points", _s.Count(_d.PointsFromTable ?? _d.Total.Points, "point")),
+                        ("played", _s.Count(_d.Total.Played, "match"))),
                     _s.Format("summary.record", ("won", N(_d.Total.Won)), ("drawn", N(_d.Total.Drawn)),
                         ("lost", N(_d.Total.Lost)), ("for", N(_d.Total.GoalsFor)), ("against", N(_d.Total.GoalsAgainst))),
                 };
@@ -125,7 +125,7 @@ namespace SeasonReview
                     ("club", signing.OtherClub ?? "?"), ("fee", _money(signing.Fee))));
             var scorer = _d.Players.Where(p => p.Goals > 0).OrderByDescending(p => p.Goals).FirstOrDefault();
             if (scorer != null)
-                moments.Items.Add(_s.Format("summary.moment.scorer", ("player", scorer.Name), ("goals", N(scorer.Goals))));
+                moments.Items.Add(_s.Format("summary.moment.scorer", ("player", scorer.Name), ("goals", _s.Count(scorer.Goals, "goal"))));
             if (moments.Items.Count > 0)
             {
                 section.Add(new Subheading { Text = _s.Get("summary.moments") });
@@ -156,8 +156,8 @@ namespace SeasonReview
             if (!_d.Unavailable.Contains("matches"))
             {
                 var runs = new Bullets();
-                runs.Items.Add(_s.Format("summary.moment.winrun", ("count", N(_d.LongestWinningRun))));
-                runs.Items.Add(_s.Format("summary.moment.unbeaten", ("count", N(_d.LongestUnbeatenRun))));
+                runs.Items.Add(_s.Format("summary.moment.winrun", ("count", _s.Count(_d.LongestWinningRun, "match"))));
+                runs.Items.Add(_s.Format("summary.moment.unbeaten", ("count", _s.Count(_d.LongestUnbeatenRun, "match"))));
                 section.Add(runs);
             }
             return section;
@@ -175,8 +175,8 @@ namespace SeasonReview
                 {
                     Title = _s.Get("players.pots"),
                     Text = pots.Name,
-                    Detail = _s.Format("players.pots.text", ("player", pots.Name), ("apps", N(pots.Appearances)),
-                        ("rating", Rating(pots)), ("goals", N(pots.Goals)), ("assists", N(pots.Assists)))
+                    Detail = _s.Format("players.pots.text", ("player", pots.Name), ("apps", _s.Count(pots.Appearances, "appearance")),
+                        ("rating", Rating(pots)), ("goals", _s.Count(pots.Goals, "goal")), ("assists", _s.Count(pots.Assists, "assist")))
                         + " " + _s.Get("players.pots.how"),
                 });
 
@@ -245,7 +245,8 @@ namespace SeasonReview
 
             section.Add(new Paragraph
             {
-                Text = _s.Format("injuries.summary", ("count", N(_d.Injuries.Count)), ("days", N(_d.Injuries.Sum(i => i.Days))))
+                Text = _s.Format("injuries.summary", ("injuries", _s.Count(_d.Injuries.Count, "injury")),
+                           ("days", _s.Count(_d.Injuries.Sum(i => i.Days), "day")))
                        + " " + _s.Format("injuries.severity", ("major", N(_d.Major ?? 0)), ("moderate", N(_d.Moderate ?? 0)),
                            ("minor", N(_d.Minor ?? 0)), ("slight", N(_d.Slight ?? 0))),
             });
@@ -258,7 +259,7 @@ namespace SeasonReview
                 table.Rows.Add(new[]
                 {
                     i.Player, i.Description ?? "-", _s.Date(i.Date),
-                    i.Active ? _s.Get("injuries.ongoing") : _s.Format("injuries.days", ("days", N(i.Days))),
+                    i.Active ? _s.Get("injuries.ongoing") : _s.Count(i.Days, "day"),
                 });
             section.Add(table);
             return section;
@@ -297,14 +298,14 @@ namespace SeasonReview
             {
                 var positives = new Bullets();
                 positives.Items.AddRange(c.Highlights);
-                section.Add(new Paragraph { Text = _s.Get("board.positive") });
+                section.Add(new Subheading { Text = _s.Get("board.positive") });
                 section.Add(positives);
             }
             if (c.Criticism.Count > 0)
             {
                 var concerns = new Bullets();
                 concerns.Items.AddRange(c.Criticism);
-                section.Add(new Paragraph { Text = _s.Get("board.negative") });
+                section.Add(new Subheading { Text = _s.Get("board.negative") });
                 section.Add(concerns);
             }
         }

@@ -13,6 +13,25 @@ format.date = {d} {month} {yyyy}
 format.ordinal = {n}.
 format.decimal = ,
 
+# Sayılı sözcükler: ".one" 1 için, ".other" diğer sayılar için. Türkçede sayıdan sonra
+# çoğul eki gelmediği için ikisi aynıdır. {n} sayının kendisidir.
+plural.match.one = {n} maç
+plural.match.other = {n} maç
+plural.leaguematch.one = {n} lig maçı
+plural.leaguematch.other = {n} lig maçı
+plural.point.one = {n} puan
+plural.point.other = {n} puan
+plural.appearance.one = {n} maç
+plural.appearance.other = {n} maç
+plural.goal.one = {n} gol
+plural.goal.other = {n} gol
+plural.assist.one = {n} asist
+plural.assist.other = {n} asist
+plural.injury.one = {n} sakatlık
+plural.injury.other = {n} sakatlık
+plural.day.one = {n} gün
+plural.day.other = {n} gün
+
 common.unavailable = Veri alınamadı.
 common.unknown = bilinmiyor
 common.none = Yok.
@@ -23,7 +42,7 @@ common.free = Bedelsiz
 
 title = {club}: {season} Sezon Değerlendirmesi
 subtitle = {division} · rapor tarihi {date}
-interim = Ara rapor: lig sezonu henüz bitmedi ({remaining} lig maçı kaldı).
+interim = Ara rapor: lig sezonu henüz bitmedi ({remaining} kaldı).
 footer.generated = Season Review {version} tarafından {date} (oyun içi tarih) tarihinde oluşturuldu.
 footer.language = Yönetim ve taraftar görüşleri, hedefler ve turnuva adları oyundan alıntıdır ve oyunun dilindedir.
 footer.money = Tutarlar oyunda kullandığınız para biriminde gösterilir.
@@ -42,8 +61,8 @@ section.finances = Finans
 section.injuries = Sakatlıklar
 section.board = Yönetim ve taraftarlar
 
-summary.finished = {division}: {club}, sezonu {teams} takım arasında {position} sırada ve {points} puanla tamamladı.
-summary.current = {division}: {club}, {played} maç sonunda {teams} takım arasında {position} sırada ve {points} puanda.
+summary.finished = {division}: {club}, sezonu {teams} takım arasında {position} sırada tamamladı ve {points} topladı.
+summary.current = {division}: {club}, {played} sonunda {teams} takım arasında {position} sırada ve {points} topladı.
 summary.record = {won} galibiyet, {drawn} beraberlik, {lost} mağlubiyet; atılan gol {for}, yenilen gol {against}.
 summary.media.better = Bu, medyanın sezon öncesi tahmini olan {prediction} sıranın üzerinde.
 summary.media.worse = Bu, medyanın sezon öncesi tahmini olan {prediction} sıranın altında.
@@ -56,10 +75,10 @@ summary.cups.none = Kupa maçı oynanmadı.
 summary.moments = Sezonun öne çıkanları
 summary.moment.win = En farklı galibiyet: {opponent} karşısında {score} ({venue}, {competition}, {date}).
 summary.moment.defeat = En ağır yenilgi: {opponent} karşısında {score} ({venue}, {competition}, {date}).
-summary.moment.winrun = Ligde en uzun galibiyet serisi: {count} maç.
-summary.moment.unbeaten = Ligde en uzun yenilmezlik serisi: {count} maç.
+summary.moment.winrun = Ligde en uzun galibiyet serisi: {count}.
+summary.moment.unbeaten = Ligde en uzun yenilmezlik serisi: {count}.
 summary.moment.signing = En pahalı transfer: {player} ({club}, {fee}).
-summary.moment.scorer = Gol kralı: {player}, {goals} gol.
+summary.moment.scorer = Gol kralı: {player}, {goals}.
 
 cups.competition = Turnuva
 cups.record = O / G / B / M
@@ -79,7 +98,7 @@ league.away = Deplasman
 
 players.scope = İstatistikler kulübün bu sezon oynadığı tüm turnuvaları kapsar.
 players.pots = Sezonun oyuncusu
-players.pots.text = {player}: {apps} maç, ortalama puan {rating}, {goals} gol ve {assists} asist.
+players.pots.text = {player}: {apps}, ortalama puan {rating}, {goals} ve {assists}.
 players.pots.how = Ortalama puana göre, maç sayısıyla ağırlıklandırılarak seçildi.
 players.scorers = Gol krallığı
 players.assists = Asist krallığı
@@ -117,14 +136,13 @@ finances.wages.value = yıllık {amount}
 finances.status = Mali durum
 finances.note = Oyunun sezon toplamları muhasebe rakamlarıdır (örneğin sponsorluk anlaşıldığında yazılır); bu yüzden gelir eksi gider, banka bakiyesindeki değişime eşit değildir.
 
-injuries.summary = Bu sezon {count} sakatlık, toplam {days} gün kayıp.
+injuries.summary = Bu sezon {injuries}, toplam {days} kayıp.
 injuries.severity = Ağır: {major} · orta: {moderate} · hafif: {minor} · çok hafif: {slight}.
 injuries.longest = En uzun süre sahalardan uzak kalanlar
 injuries.player = Oyuncu
 injuries.injury = Sakatlık
 injuries.from = Başlangıç
 injuries.duration = Süre
-injuries.days = {days} gün
 injuries.ongoing = hâlâ sakat
 injuries.none = Bu sezon sakatlık yaşanmadı.
 

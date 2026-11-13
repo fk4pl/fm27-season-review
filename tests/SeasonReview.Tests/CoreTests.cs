@@ -107,6 +107,33 @@ namespace SeasonReview.Tests
         }
 
         [Fact]
+        public void EnglishPlurals()
+        {
+            var s = TestData.English();
+            Assert.Equal("1 match", s.Count(1, "match"));
+            Assert.Equal("0 matches", s.Count(0, "match"));
+            Assert.Equal("3 matches", s.Count(3, "match"));
+            Assert.Equal("1 assist", s.Count(1, "assist"));
+            Assert.Equal("1 injury", s.Count(1, "injury"));
+            Assert.Equal("2 injuries", s.Count(2, "injury"));
+        }
+
+        [Fact]
+        public void TurkishHasNoPluralAfterNumbers()
+        {
+            var s = TestData.Turkish();
+            Assert.Equal("1 maç", s.Count(1, "match"));
+            Assert.Equal("3 maç", s.Count(3, "match"));
+        }
+
+        [Fact]
+        public void PluralFallsBackToOtherWhenNoSingularGiven()
+        {
+            var s = Strings.Parse("xx", "plural.match.other = {n} Spiele");
+            Assert.Equal("1 Spiele", s.Count(1, "match"));
+        }
+
+        [Fact]
         public void MissingKeyFallsBackToEnglish()
         {
             var partial = Strings.Parse("xx", "title = Rapor {club}", TestData.English());
@@ -343,6 +370,9 @@ namespace SeasonReview.Tests
         {
             var md = MarkdownRenderer.Render(Document(TestData.English()));
             Assert.Contains("Kartal SK finished 2nd of 3 in the Example League with 11 points.", md);
+            Assert.Contains("Striker One: 30 appearances, average rating 7.40, 20 goals and 3 assists.", md);
+            Assert.Contains("1 injury this season, 21 days lost in total.", md);
+            Assert.Contains("Longest winning run in the league: 2 matches.", md);
             Assert.Contains("better than the media's pre-season prediction of 3rd", md);
             Assert.Contains("Striker One", md);
             Assert.Contains("Profit/loss for the season (change in bank balance): **-£8M**", md);
@@ -356,7 +386,8 @@ namespace SeasonReview.Tests
         {
             var md = MarkdownRenderer.Render(Document(TestData.Turkish()));
             Assert.Contains("Sezon Değerlendirmesi", md);
-            Assert.Contains("2. sırada", md);
+            Assert.Contains("2. sırada tamamladı ve 11 puan topladı", md);
+            Assert.Contains("Bu sezon 1 sakatlık, toplam 21 gün kayıp.", md);
             Assert.Contains("7,4", md); // decimal comma
             Assert.DoesNotContain("[", md.Replace("\\[", "").Replace("\\]", ""));
         }
@@ -365,9 +396,20 @@ namespace SeasonReview.Tests
         public void InterimReportSaysSo()
         {
             var doc = Document(TestData.English(), remaining: 4);
-            Assert.Contains("4 league matches left", doc.Notice);
+            Assert.Contains("(4 league matches left)", doc.Notice);
+            Assert.Contains("(1 league match left)", Document(TestData.English(), remaining: 1).Notice);
             var none = Document(TestData.English());
             Assert.Null(none.Notice);
+        }
+
+        [Fact]
+        public void FeedbackListsHaveSubheadings()
+        {
+            var board = Document(TestData.English()).Sections.Single(s => s.Id == "board");
+            var positives = board.Blocks.FindIndex(b => b is Subheading h && h.Text == "Positives");
+            Assert.True(positives > 0);
+            Assert.IsType<Bullets>(board.Blocks[positives + 1]);
+            Assert.DoesNotContain(board.Blocks, b => b is Paragraph);
         }
 
         [Fact]

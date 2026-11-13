@@ -58,6 +58,20 @@ namespace SeasonReview
             return text.ToString();
         }
 
+        /// <summary>
+        /// A number with its unit in the right singular/plural form, from the
+        /// "plural.&lt;unit&gt;.one" and "plural.&lt;unit&gt;.other" keys (e.g. "1 match", "3 matches").
+        /// Languages without a separate singular can give both keys the same text.
+        /// </summary>
+        public string Count(int n, string unit)
+        {
+            string key = "plural." + unit + (n == 1 ? ".one" : ".other");
+            if (n == 1 && !Defines(key)) key = "plural." + unit + ".other";
+            return Get(key).Replace("{n}", n.ToString(CultureInfo.InvariantCulture));
+        }
+
+        private bool Defines(string key) => _values.ContainsKey(key) || (_fallback != null && _fallback.Defines(key));
+
         /// <summary>1st/2nd/3rd in English; "{n}." style patterns (e.g. "4.") elsewhere.</summary>
         public string Ordinal(int n)
         {
