@@ -159,11 +159,76 @@ Hidden values: literals such as `CurrentAbility…`, `PotentialAbility…` and m
 properties exist. The mod must use an **allow-list** of property names so none of these can ever
 be requested or logged; the Stage 1 dump must filter them out before writing to the log.
 
-## 7. Open questions for Stage 1
+## 7. Stage 1 results (verified in the running game, 27.0.1)
 
-1. Can a plugin-owned node be attached and a channel opened on `new GameReference()` without a
-   specific screen being open?
-2. Which reference type owns each property in section 6, and what `TypedValue` kind is returned
-   (number, string, list of references)?
-3. Does `OnChannelDataChange` deliver values for plugin-owned keys, or is a Harmony patch needed?
-4. Is there a season-start bank balance, or must the mod snapshot it itself?
+Tested with the Stage 1 plugin on 2026-11-13 in a Beşiktaş career, from the portal screen, with
+none of the relevant screens open. No crash, no errors in `LogOutput.log`.
+
+### The binding tree is the way in
+
+- `SI.Core.GameSubsystems.TryGet<SI.Bindable.BindingSubsystem>(out b)` returns the UI binding
+  tree (`BindingSubsystem : Bindings`). `b.m_root` is a `Bindings.Node`; nodes expose `Name`,
+  `Key`, `Value` (`TypedValue`), `FirstChild`, `NextSibling`. About 5,000 nodes on a normal screen.
+- A permanent node named `game` (value: `GameReference`) sits one level below the root (parent
+  name looked like `GameWorldBackground43`; the suffix is not stable, so search by name).
+- `b.Bind(ref gameKey, ref span, owner, callback)` with a dot-separated **property path** makes
+  the game resolve it like it does for its own screens; `b.Get(ref key)` returns the value a few
+  frames later. The path span comes from `Il2CppSystem.MemoryExtensions.AsSpan(string)`; the
+  callback is a `Bindings.ValueChangedCallback` converted from `Action<Bindings.Key, TypedValue>`.
+  Afterwards `b.Unbind(ref key, callback)`. **No Harmony patch is needed** and nothing is sent
+  to the simulation except the read subscription.
+- Chains of at least three references resolve without the screen being open, e.g.
+  `GameCurrentManagerClubTeam.TeamConfidence.BoardConfidenceOverallString`.
+
+This supersedes the channel-level plan in section 5 (`AddNode`/`OpenChannel`), which stays
+documented only as background.
+
+### Values read successfully
+
+| Path under `game` | Result |
+|---|---|
+| `CurrentGameDate` | `GameDate { Data1 = N, Type = FmdateSiDate }`, N = year << 17 \| zero-based day of year << 8 \| low byte (meaning unknown, changes daily) |
+| `CurrentGameYear` | number |
+| `GameCurrentManagerClubTeam.Name`, `.Club.Name`, `.Division.Name` | link markup + visible text (see below) |
+| `GameCurrentManagerClubTeam.LeaguePositionString` | `4th` |
+| `…TeamConfidence.BoardConfidenceOverallString` / `SupporterConfidenceOverallString` | the game's own sentence |
+| `…Club.OverallBalance`, `…Club.TotalIncomeThisSeason` | plain integers (currency unit **UNVERIFIED**) |
+
+`CurrentGameDateString` never answered (10 s timeout); decode `CurrentGameDate` instead.
+**UNVERIFIED:** day-of-year being zero-based (decoded 2026-06-30, then 2026-07-01 after one
+"Continue"); to be confirmed against the date shown in the game.
+
+Name properties are returned as a clickable link: a base64 blob (link target and a
+length-prefixed tooltip such as "Click to view Beşiktaş JK") immediately followed by the visible
+text. `GameText.StripLink` removes the blob. Strings come in the game's UI language.
+
+### Property ownership (from the runtime dump: 972 reference types, 14,505 properties)
+
+Dump files are written to `<game>/BepInEx/SeasonReview/probe-properties.txt` and
+`probe-tree.txt` (names and value types only, hidden values skipped; not part of the repository).
+
+| Need | Owner type | Properties |
+|---|---|---|
+| Date, human club | `GameReference` | `CurrentGameDate`, `CurrentGameYear`, `GameCurrentManager`, `GameCurrentManagerClubTeam`, `GameStartDate` |
+| Team basics | `TeamReference` | `Name`, `Club`, `Division`, `LeaguePosition`, `LeaguePositionString`, `Players`, `FixtureList`, `RemainingLeagueFixtures`, `TeamConfidence`, `CurrentInjuryList`, `SeasonInjurySummaryData`, `MediaExpectedPosition` |
+| League table row | `LeagueTableRowReference` | `Team`, `TablePosition`, `LeagueGamesPlayed/Won/Drawn/Lost`, `LeagueGoalsFor/Against`, `LeagueGoalDifference`, `LeaguePoints`, `LeagueFate` |
+| Season summary | `ClubSeasonSummaryCompRowReference` | `Competition`, `CompetitionLongName`, `DisplayString`, `Results`, `VisionObjectiveStatus` |
+| Player stats | `PersonReference` | `Name`, `Age`, `DateOfBirth`, `ClubAppearancesThisSeason`, `ClubGoalsThisSeason`, `ClubAssistsThisSeason`, `ClubAverageRatingThisSeason`, `Appearances`, `Minutes`, `Goals`, `Assists`, `AverageRating` |
+| Transfers | `SeasonTransferInfoReference`, `PastTransferReference`, `ClubReference` | `SeasonTransfersIn/OutCount`, `…In/OutPlayers`, `…In/OutTotalValue`, `SeasonTransfersNetSpend`; `Person`, `BuyingTeam`, `SellingTeam`, `TransferValue`; `PastTransfersIncoming/Outgoing`, `PastTransfersIn/OutAmount` |
+| Finances | `ClubReference`, `FinanceWagesDataReference` | `OverallBalance`, `FinanceBalanceHistory`, `TotalIncomeThisSeason`, `TotalExpenditureThisSeason`, `CurrentWageSpending`, `WageBudget`, `TransferBudget`, `ProjectionProfitLoss`; `CurrentWageTotalValue`, `CurrentWageBudgetValue` |
+| Board, supporters | `TeamConfidenceReference`, `ClubReference` | `Board…`/`Supporter…ConfidenceOverallGrade/String`, `…MatchString`, `…SquadConfidenceString`, `…FeedbackHighlights/Criticism`; `ClubVisionMeetingSeasonExpectations`, `VisionObjectiveList` |
+| Injuries | `PersonReference`, `PlayerInjuryReference` | `InjuriesThisSeason`, `TimeMissedThisSeason`, `InjuriesHistory`; `InjuryDate`, `InjuryDescription`, `InjuryDurationDays`, `Player` |
+
+Still not found as ready-made properties: home/away league split and longest winning/unbeaten
+runs (compute from `FixtureList`).
+
+## 8. Open questions for Stage 2
+
+1. How list values (`Players`, `FixtureList`, `PastTransfersIncoming`, …) are enumerated through
+   binding paths (the tree shows `Items.<index>` and `Count` children under list nodes).
+2. Currency unit and formatting of money values; whether `…String` variants give the game's own
+   formatted text.
+3. Zero- or one-based day of year in `CurrentGameDate`.
+4. Which season a "ThisSeason" property refers to right after the league ends.
+5. `InjurySusceptibility`, `InjuryRisk…` exist on `PersonReference`; they are on the hidden-value
+   deny-list and must stay off the report.

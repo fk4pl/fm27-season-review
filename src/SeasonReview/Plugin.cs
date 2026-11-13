@@ -49,7 +49,6 @@ namespace SeasonReview
         private const string Team = "GameCurrentManagerClubTeam";
         private static readonly string[] HelloPaths =
         {
-            "CurrentGameDateString",
             "CurrentGameDate",
             Team + ".Name",
             Team + ".Club.Name",
@@ -101,12 +100,14 @@ namespace SeasonReview
 
         private static void LogHello(System.Collections.Generic.IReadOnlyDictionary<string, string> values)
         {
-            values.TryGetValue("CurrentGameDateString", out var date);
+            values.TryGetValue("CurrentGameDate", out var rawDate);
             values.TryGetValue(Team + ".Name", out var club);
-            Plugin.L.LogInfo($"In-game date: {date ?? "data unavailable"}");
-            Plugin.L.LogInfo($"Club: {club ?? "data unavailable"}");
+            Plugin.L.LogInfo(GameText.TryParseGameDate(rawDate, out var date)
+                ? $"In-game date: {date:yyyy-MM-dd}"
+                : "In-game date: data unavailable");
+            Plugin.L.LogInfo($"Club: {(string.IsNullOrEmpty(club) ? "data unavailable" : GameText.StripLink(club))}");
             foreach (var pair in values)
-                Plugin.L.LogInfo($"  {pair.Key} = {pair.Value ?? "(no answer)"}");
+                Plugin.L.LogInfo($"  {pair.Key} = {(pair.Value == null ? "(no answer)" : GameText.StripLink(pair.Value))}");
         }
     }
 }
