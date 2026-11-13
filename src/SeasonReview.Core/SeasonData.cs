@@ -233,9 +233,14 @@ namespace SeasonReview
         private static IEnumerable<GameRecord> TableStages(GameRecord r)
         {
             var seasonStages = Nested(r, SeasonSpec.AllStages, SeasonSpec.AllStages);
-            return r.Items(SeasonSpec.Stages)
-                .Concat(seasonStages)
-                .Concat(seasonStages.SelectMany(stage => stage.Items(SeasonSpec.StageChildren)));
+            return r.Items(SeasonSpec.Stages).Concat(seasonStages).Concat(SubStages(seasonStages));
+        }
+
+        private static List<GameRecord> SubStages(List<GameRecord> stages)
+        {
+            var result = new List<GameRecord>();
+            foreach (var stage in stages) result.AddRange(stage.Items(SeasonSpec.StageChildren));
+            return result;
         }
 
         // Diagnostic: how many stages and rows each table source returned.
@@ -247,7 +252,7 @@ namespace SeasonReview
             var seasonStages = Nested(r, SeasonSpec.AllStages, SeasonSpec.AllStages);
             return One("current stages", r.Items(SeasonSpec.Stages)) + "; "
                    + One("season stages", seasonStages) + "; "
-                   + One("sub-stages", seasonStages.SelectMany(stage => stage.Items(SeasonSpec.StageChildren)).ToList());
+                   + One("sub-stages", SubStages(seasonStages));
         }
 
         private static int? Positive(int? n) => n is > 0 ? n : null;
