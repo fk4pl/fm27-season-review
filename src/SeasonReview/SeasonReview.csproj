@@ -1,0 +1,42 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net6.0</TargetFramework>
+    <AssemblyName>SeasonReview</AssemblyName>
+    <RootNamespace>SeasonReview</RootNamespace>
+    <Version>0.1.0</Version>
+    <LangVersion>latest</LangVersion>
+    <Nullable>disable</Nullable>
+    <CopyLocalLockFileAssemblies>false</CopyLocalLockFileAssemblies>
+    <GenerateDocumentationFile>false</GenerateDocumentationFile>
+    <CheckEolTargetFramework>false</CheckEolTargetFramework>
+    <!-- FM27 install folder. Override with: dotnet build -p:GameDir="C:\...\Football Manager 27" -->
+    <GameDir Condition="'$(GameDir)' == ''">$(HOME)/.local/share/Steam/steamapps/common/Football Manager 27</GameDir>
+    <BepInExDir>$(GameDir)/BepInEx</BepInExDir>
+    <!-- Set to false to build without copying into the game: -p:DeployToGame=false -->
+    <DeployToGame Condition="'$(DeployToGame)' == ''">true</DeployToGame>
+  </PropertyGroup>
+
+  <!-- Local build references only. These files belong to BepInEx / Sports Interactive / Unity
+       and are never copied into the repository or the release. -->
+  <ItemGroup>
+    <Reference Include="$(BepInExDir)/core/BepInEx.Core.dll" Private="false" />
+    <Reference Include="$(BepInExDir)/core/BepInEx.Unity.IL2CPP.dll" Private="false" />
+    <Reference Include="$(BepInExDir)/core/Il2CppInterop.Runtime.dll" Private="false" />
+    <Reference Include="$(BepInExDir)/core/Il2CppInterop.Common.dll" Private="false" />
+
+    <Reference Include="$(BepInExDir)/interop/Il2Cppmscorlib.dll" Private="false" />
+    <Reference Include="$(BepInExDir)/interop/UnityEngine.CoreModule.dll" Private="false" />
+    <Reference Include="$(BepInExDir)/interop/SI.Core.dll" Private="false" />
+    <Reference Include="$(BepInExDir)/interop/SI.Bindable.dll" Private="false" />
+    <Reference Include="$(BepInExDir)/interop/SI.Bindable.Reference.Core.dll" Private="false" />
+    <Reference Include="$(BepInExDir)/interop/SI.Interop.dll" Private="false" />
+    <Reference Include="$(BepInExDir)/interop/FM.UI.dll" Private="false" />
+  </ItemGroup>
+
+  <Target Name="DeployToGame" AfterTargets="Build" Condition="'$(DeployToGame)' == 'true'">
+    <Copy SourceFiles="$(TargetPath)" DestinationFolder="$(BepInExDir)/plugins" />
+    <Message Importance="high" Text="SeasonReview.dll copied to $(BepInExDir)/plugins" />
+  </Target>
+
+</Project>
