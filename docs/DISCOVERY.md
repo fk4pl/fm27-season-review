@@ -192,7 +192,7 @@ documented only as background.
 | `GameCurrentManagerClubTeam.Name`, `.Club.Name`, `.Division.Name` | link markup + visible text (see below) |
 | `GameCurrentManagerClubTeam.LeaguePositionString` | `4th` |
 | `…TeamConfidence.BoardConfidenceOverallString` / `SupporterConfidenceOverallString` | the game's own sentence |
-| `…Club.OverallBalance`, `…Club.TotalIncomeThisSeason` | plain integers in whole currency units (44074012 was shown in game as €44.07M; whether the raw number follows the user's currency setting is **UNVERIFIED**) |
+| `…Club.OverallBalance`, `…Club.TotalIncomeThisSeason` | plain numbers in **pounds sterling**, whatever currency the user displays (see section 9) |
 
 `CurrentGameDateString` never answered (10 s timeout); decode `CurrentGameDate` instead.
 Day of year is **one-based** (confirmed by the user: day 180 of 2026 was shown in game as
@@ -228,7 +228,62 @@ runs (compute from `FixtureList`).
    binding paths (the tree shows `Items.<index>` and `Count` children under list nodes).
 2. Currency unit and formatting of money values; whether `…String` variants give the game's own
    formatted text.
-3. Whether raw money values change with the currency chosen in preferences.
 4. Which season a "ThisSeason" property refers to right after the league ends.
 5. `InjurySusceptibility`, `InjuryRisk…` exist on `PersonReference`; they are on the hidden-value
    deny-list and must stay off the report.
+
+## 9. Stage 2 findings (running game, 27.0.1)
+
+### Lists and records
+
+- List properties return `List<SI.Core.TypedValue>`; each item wraps a reference
+  (`PersonReference`, `CompetitionStageReference`, …), a `SI.Bindable.DynamicReference`, or a
+  plain value such as `System.String`.
+- To read an item's properties the mod parks it on a private node
+  (`SeasonReviewMod.<n>.src`, created with `Bindings.Set(path, value, NodeFlags.None, (SetFlags)0)`)
+  and binds property paths under it. The whole `SeasonReviewMod` subtree is removed afterwards.
+  Verified: 28 players with stats, past injuries, expectations, stages.
+- `SI.Bindable.DynamicReference : SI.Core.Record : Dictionary<uint, TypedValue>` is a small record
+  delivered in one piece; its fields can be read directly (property id → value). Examples:
+  `PersonReference.Minutes` → `{ PropertyValue, Count }`, `ClubReference.FinancialStatus` →
+  `{ DisplayValue, SortValue }`, `FinanceBalanceHistory` items → `{ GraphPointX (date), GraphPointY }`.
+
+### Contexts
+
+Many properties only answer when **context values** are present. The runtime dump lists them per
+property (`GetContextsInternal`), e.g.:
+
+| Property | Contexts |
+|---|---|
+| `TeamReference.FixtureList` | `PreviousAmount`, `FutureAmount`, `FixturePadding`, `YearIndex` (screen uses -1, -1, true/false, 0) |
+| `CompetitionStageReference.LeagueTable` | `LeagueTableType` |
+| `CompReference.SeasonTransferInfo` | `team`, `Year`, `TransferType` (screen: 0 and 8) |
+| `CompReference.TransferInOutList` | `Year`, `ViewID`, `Number` |
+| `ClubReference.VisionObjectiveList` | `VisionObjectiveSetter`, `VisionObjectiveType`, `VisionObjectiveYear`, `ViewID`, `VisionIsUsingPerformanceData` |
+| `ClubReference.PastTransfersIncoming/Outgoing` | `StringType` |
+| `PersonReference.IsLoanIn` | `club` |
+| `FixtureReference.ResultType` | `team` |
+
+In the game's screens a context is a node with that name next to (or above) the node holding the
+object. The mod does the same inside its private container:
+`SeasonReviewMod.<n>.<ContextName>` beside `SeasonReviewMod.<n>.src`. Results pending.
+
+### Money
+
+- Raw money values are **pounds sterling** regardless of the display currency
+  (`FM.GamePlugin.CashTranslatable(long poundsValue)`). Confirmed against the user's screen:
+  raw balance 35,844,883 ↔ €41.72M shown; raw wage spending 1,451,677 (**per week**) ↔
+  €87.87M p/a shown.
+- `FM.UI.ChartCurrencyVisualFunctionLibrary.TranslateCurrencyValue(double)` is the game's own
+  formatter; to be confirmed that it converts to the user's currency (**UNVERIFIED**).
+- Never print raw money values in the report; always format through the game.
+
+### Other
+
+- Link markup in strings is `U+0001 <base64 link data> U+0002 <visible text> U+0001`.
+- `Division.SeasonName` = `2026/27`; `Team.MediaExpectedPosition` = number;
+  `TeamConfidence.*Grade` are numbers, `*String` the game's sentences;
+  `Board/SupporterFeedbackHighlights/Criticism` are lists of strings.
+- `ClubSeasonExpectationsCompetitionList` gives the competitions and an importance number, but
+  not the expectation wording; the vision objective list is the candidate for that.
+- `ClubAverageRatingThisSeason` is a float (round to 2 decimals).

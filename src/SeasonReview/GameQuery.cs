@@ -12,18 +12,35 @@ namespace SeasonReview
         public readonly List<string> Values = new();
         public readonly List<ListSpec> Lists = new();
 
+        /// <summary>
+        /// Context values some properties need (e.g. "YearIndex" for a fixture list). They are
+        /// supplied next to the object, the way the game's own screens do it. A value is an int,
+        /// a bool, or <see cref="Self"/> for the object itself (e.g. the "team" context).
+        /// </summary>
+        public readonly Dictionary<string, object> Contexts = new();
+
+        public static readonly object Self = new object();
+
+        public Spec Context(string name, object value) { Contexts[name] = value; return this; }
+
         public Spec Value(params string[] paths) { Values.AddRange(paths); return this; }
 
-        public Spec List(string path, Spec item, int maxItems = 200)
+        /// <summary>Reads a list; each item is read with <paramref name="item"/>. A single
+        /// object (not a collection) is treated as a list of one.</summary>
+        public Spec List(string path, Spec item, int maxItems = 200, string key = null)
         {
-            Lists.Add(new ListSpec { Path = path, Item = item, MaxItems = maxItems });
+            Lists.Add(new ListSpec { Path = path, Key = key ?? path, Item = item, MaxItems = maxItems });
             return this;
         }
+
+        /// <summary>Reads one referenced object with its own spec (and contexts).</summary>
+        public Spec Object(string path, Spec item, string key = null) => List(path, item, 1, key);
     }
 
     internal sealed class ListSpec
     {
         public string Path;
+        public string Key; // name of the result list; lets one path be read with several contexts
         public Spec Item;
         public int MaxItems;
     }

@@ -170,7 +170,7 @@ namespace SeasonReview
         private void ExpandList(Request r, Il2CppSystem.Object obj)
         {
             var records = new List<Record>();
-            r.Record.Lists[r.Path] = records;
+            r.Record.Lists[r.List.Key] = records;
             string typeName = "?";
             try { typeName = obj.GetIl2CppType().FullName; } catch (Exception) { }
 
@@ -178,12 +178,12 @@ namespace SeasonReview
             try { items = Enumerate(obj, r.List.MaxItems); }
             catch (Exception e)
             {
-                r.Record.ListNotes[r.Path] = $"type {typeName}; cannot enumerate: {e.Message}";
+                r.Record.ListNotes[r.List.Key] = $"type {typeName}; cannot enumerate: {e.Message}";
                 return;
             }
             if (items == null)
             {
-                r.Record.ListNotes[r.Path] = $"type {typeName}; not a collection";
+                r.Record.ListNotes[r.List.Key] = $"type {typeName}; not a collection";
                 return;
             }
 
@@ -204,7 +204,23 @@ namespace SeasonReview
                     var holder = TypedValue.GetReferenceTypedValue();
                     holder.SetValue(payload);
 
-                    var span = Il2CppMemory.AsSpan(PrivateRoot + "." + (_privateCount++).ToString("X"));
+                    // Private container: context values plus the object itself as "src".
+                    string container = PrivateRoot + "." + (_privateCount++).ToString("X");
+                    foreach (var context in r.List.Item.Contexts)
+                    {
+                        TypedValue contextValue;
+                        if (ReferenceEquals(context.Value, Spec.Self))
+                        {
+                            var self = TypedValue.GetReferenceTypedValue();
+                            self.SetValue(payload);
+                            contextValue = self;
+                        }
+                        else if (context.Value is bool flag) contextValue = TypedValue.Create(flag);
+                        else contextValue = TypedValue.Create(Convert.ToInt32(context.Value));
+                        var contextSpan = Il2CppMemory.AsSpan(container + "." + context.Key);
+                        _bindings.Set(ref contextSpan, contextValue, Bindings.NodeFlags.None, (Bindings.SetFlags)0);
+                    }
+                    var span = Il2CppMemory.AsSpan(container + ".src");
                     var key = _bindings.Set(ref span, holder, Bindings.NodeFlags.None, (Bindings.SetFlags)0);
 
                     var record = new Record();
@@ -215,11 +231,11 @@ namespace SeasonReview
                 }
                 catch (Exception e)
                 {
-                    r.Record.ListNotes[r.Path] = $"type {typeName}; item failed: {e.Message}";
+                    r.Record.ListNotes[r.List.Key] = $"type {typeName}; item failed: {e.Message}";
                     return;
                 }
             }
-            r.Record.ListNotes[r.Path] = $"type {typeName}; {records.Count} items of {itemType}";
+            r.Record.ListNotes[r.List.Key] = $"type {typeName}; {records.Count} items of {itemType}";
         }
 
         /// <summary>
@@ -263,7 +279,11 @@ namespace SeasonReview
             }
 
             var enumerable = obj.TryCast<Il2CppCollections.IEnumerable>();
-            if (enumerable == null) return null;
+            if (enumerable == null || obj.TryCast<Il2CppSystem.String>() != null)
+            {
+                result.Add(obj); // a single object: a list of one
+                return result;
+            }
             var enumerator = enumerable.GetEnumerator();
             while (result.Count < max && enumerator.MoveNext()) result.Add(enumerator.Current);
             return result;

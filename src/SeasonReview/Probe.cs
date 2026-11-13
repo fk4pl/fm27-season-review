@@ -24,6 +24,14 @@ namespace SeasonReview
         private static readonly string[] ClubNames = { "humanteam", "humanclub" };
         private static readonly string[] LabelNames = { "name", "shortname", "fullname", "club", "team" };
 
+        // Context nodes whose values tell us what the game's screens pass to list properties.
+        private static readonly HashSet<string> ContextNames = new HashSet<string>
+        {
+            "year", "yearindex", "leaguetabletype", "stringtype", "transfertype", "viewid", "number", "type",
+            "visionobjectivesetter", "visionobjectivetype", "visionobjectiveyear", "visionisusingperformancedata",
+            "previousamount", "futureamount", "fixturepadding", "selectedobject", "id",
+        };
+
         private const int MaxNodes = 400_000;
         private const int MaxDepth = 48;
 
@@ -104,7 +112,8 @@ namespace SeasonReview
                 bool isLabelUnderClub = LabelNames.Contains(lower) && ClubNames.Any(n => ContainsSegment(parentPath, n));
                 // Binding variables and contexts are written in lower case by the game's UI files
                 // (property names are PascalCase); their values tell us which contexts lists need.
-                bool isVariable = name.Length > 1 && name == lower && char.IsLetter(name[0]) && type != "ReferenceTypedValue";
+                bool isVariable = (name.Length > 1 && name == lower && char.IsLetter(name[0]) && type != "ReferenceTypedValue")
+                                  || ContextNames.Contains(lower);
                 if (value != null && (isDate || isClub || isLabelUnderClub || isVariable))
                 {
                     shown = Safe(() => value.AsString());

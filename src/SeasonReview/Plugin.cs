@@ -109,6 +109,15 @@ namespace SeasonReview
                 : "In-game date: data unavailable");
             Plugin.L.LogInfo($"Club: {(string.IsNullOrEmpty(club) ? "data unavailable" : GameText.StripLink(club))}");
 
+            // Money check: the game's own formatter, applied to the raw (pound) balance.
+            try
+            {
+                if (double.TryParse(data.Get(SeasonSpec.Club + ".OverallBalance"), System.Globalization.NumberStyles.Float,
+                        System.Globalization.CultureInfo.InvariantCulture, out var balance))
+                    Plugin.L.LogInfo($"Balance: raw {balance:0} -> game format '{FM.UI.ChartCurrencyVisualFunctionLibrary.TranslateCurrencyValue(balance)}'");
+            }
+            catch (Exception e) { Plugin.L.LogWarning($"Currency formatting unavailable: {e.Message}"); }
+
             int answered = 0;
             foreach (var value in data.Values.Values) if (value != null) answered++;
             Plugin.L.LogInfo($"Top-level values answered: {answered}/{data.Values.Count}");
