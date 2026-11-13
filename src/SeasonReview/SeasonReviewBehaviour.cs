@@ -4,10 +4,28 @@ using UnityEngine;
 namespace SeasonReview
 {
     /// <summary>
+    /// Unity component that only forwards Update to <see cref="SeasonController"/>. Kept
+    /// minimal: methods on an injected component must use game-compatible parameter types,
+    /// and the controller's callbacks take plain C# types.
+    /// </summary>
+    public class SeasonReviewBehaviour : MonoBehaviour
+    {
+        private SeasonController _controller;
+
+        public SeasonReviewBehaviour(IntPtr ptr) : base(ptr) { }
+
+        private void Update()
+        {
+            _controller ??= new SeasonController(this);
+            _controller.Update();
+        }
+    }
+
+    /// <summary>
     /// Runs on Unity's main thread. Watches for the end of the league season, handles the
     /// hotkey, and turns game data into reports. Only reads from the game.
     /// </summary>
-    public class SeasonReviewBehaviour : MonoBehaviour
+    internal sealed class SeasonController
     {
         private const double PeekSeconds = 3;            // how often to look at the in-game date
         private const double FallbackCheckSeconds = 120; // if the date cannot be peeked
@@ -24,9 +42,12 @@ namespace SeasonReview
         private string _lastCheckedDate;
         private DateTime _nextPeek, _nextFallbackCheck;
 
-        public SeasonReviewBehaviour(IntPtr ptr) : base(ptr) { }
+        private readonly Il2CppSystem.Object _owner; // owns the game-side subscriptions
+        private string _lastLoggedStatus;
 
-        private void Update()
+        public SeasonController(Il2CppSystem.Object owner) => _owner = owner;
+
+        public void Update()
         {
             try
             {
@@ -99,7 +120,7 @@ namespace SeasonReview
             }
             else if (date == _lastCheckedDate) return;
 
-            if (_reader.Start(bindings, this, SeasonEnd.BuildCheck(), OnSeasonCheck))
+            if (_reader.Start(bindings, _owner, SeasonEnd.BuildCheck(), OnSeasonCheck))
             {
                 _lastCheckedDate = date;
                 _bindings = bindings;
@@ -111,9 +132,13 @@ namespace SeasonReview
         {
             _job = Job.None;
             var status = SeasonEnd.Evaluate(record);
-            // Quiet during the season; visible as the end approaches.
-            if (status.Ended || (status.LeagueRemaining > 0 && status.LeagueRemaining <= 3) || status.LeaguePlayed == 0)
+            // Quiet during the season; visible as the end approaches. Each message only once.
+            if ((status.Ended || (status.LeagueRemaining > 0 && status.LeagueRemaining <= 3) || status.LeaguePlayed == 0)
+                && status.Reason != _lastLoggedStatus)
+            {
+                _lastLoggedStatus = status.Reason;
                 Plugin.L.LogInfo($"Season check: {status.Club ?? "-"} {status.Season ?? "-"}: {status.Reason}");
+            }
             if (!status.Ended) return;
 
             _reported ??= new ReportedSeasons(Plugin.StatePath());
@@ -134,7 +159,7 @@ namespace SeasonReview
                 Plugin.L.LogWarning("Game data unavailable: load a career first.");
                 return;
             }
-            if (_reader.Start(bindings, this, SeasonSpec.BuildHeader(), OnHotkeyHeader))
+            if (_reader.Start(bindings, _owner, SeasonSpec.BuildHeader(), OnHotkeyHeader))
             {
                 _bindings = bindings;
                 _job = Job.HotkeyHeader;
@@ -163,7 +188,7 @@ namespace SeasonReview
             int year = SeasonYear(season);
             if (year == 0) Plugin.L.LogWarning($"Unrecognised season name '{season}'; transfers will be unavailable.");
             var bindings = _bindings ?? GameReader.TryGetBindings();
-            if (bindings != null && _reader.Start(bindings, this, SeasonSpec.Build(year), raw => OnFullRead(raw, job)))
+            if (bindings != null && _reader.Start(bindings, _owner, SeasonSpec.Build(year), raw => OnFullRead(raw, job)))
                 _job = job;
             else
                 Plugin.L.LogWarning("Game data unavailable: could not start reading the season.");

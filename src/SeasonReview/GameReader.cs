@@ -299,7 +299,7 @@ namespace SeasonReview
             if (timedOut)
                 Plugin.L.LogWarning($"Game data read timed out ({Progress}); {_open.Count} values unanswered.");
             else
-                Plugin.L.LogInfo($"Game data read finished: {Progress}, {_open.Count} without an answer.");
+                Plugin.L.LogDebug($"Game data read finished: {Progress}, {_open.Count} without an answer.");
 
             foreach (var r in _bound)
             {
