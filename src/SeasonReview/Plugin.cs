@@ -20,6 +20,7 @@ namespace SeasonReview
         internal static ConfigEntry<string> OutputFolder;
         internal static ConfigEntry<bool> ProbeDump;
         internal static ConfigEntry<bool> ProbeHotkey;
+        internal static ConfigEntry<bool> RawDump;
 
         public override void Load()
         {
@@ -37,6 +38,9 @@ namespace SeasonReview
             ProbeHotkey = Config.Bind("Developer", "ProbeHotkey", true,
                 "Shift+<Hotkey> writes discovery dumps of the current screen to BepInEx/SeasonReview/.");
 
+            RawDump = Config.Bind("Developer", "RawDump", true,
+                "Also write everything that was read, unformatted, to draft-raw.txt next to the report.");
+
             if (!Enabled.Value)
             {
                 L.LogInfo("Season Review is disabled in the config.");
@@ -53,6 +57,7 @@ namespace SeasonReview
     {
         private readonly GameReader _reader = new GameReader();
         private Hotkey _hotkey, _probeHotkey;
+        private SI.Bindable.Bindings _bindings;
         private string _parsedFrom;
 
         public SeasonReviewBehaviour(IntPtr ptr) : base(ptr) { }
@@ -89,8 +94,11 @@ namespace SeasonReview
                 {
                     if (_reader.Busy) { Plugin.L.LogInfo("Still reading game data, please wait."); return; }
                     var bindings = Probe.Run();
-                    if (bindings != null && _reader.Start(bindings, this, SeasonSpec.Build(), OnData))
+                    if (bindings != null && _reader.Start(bindings, this, SeasonSpec.BuildHeader(), OnHeader))
+                    {
+                        _bindings = bindings;
                         Plugin.L.LogInfo("Reading season data from the game...");
+                    }
                 }
             }
             catch (Exception e)
@@ -100,32 +108,50 @@ namespace SeasonReview
             }
         }
 
-        private static void OnData(Record data)
+        // First read: which season is it? Then the full read with that season's year.
+        private void OnHeader(GameRecord header)
         {
-            var rawDate = data.Get("CurrentGameDate");
-            var club = data.Get(SeasonSpec.Team + ".Name");
-            Plugin.L.LogInfo(GameText.TryParseGameDate(rawDate, out var date)
-                ? $"In-game date: {date:yyyy-MM-dd}"
-                : "In-game date: data unavailable");
-            Plugin.L.LogInfo($"Club: {(string.IsNullOrEmpty(club) ? "data unavailable" : GameText.StripLink(club))}");
-
-            // Money check: the game's own formatter, applied to the raw (pound) balance.
-            try
+            int year = 0;
+            var season = SeasonDataBuilder.Text(header.Get(SeasonSpec.Division + ".SeasonName"));
+            if (season != null && season.Length >= 4) int.TryParse(season.Substring(0, 4), out year);
+            if (year == 0 && GameText.TryParseGameDate(header.Get("CurrentGameDate"), out var date))
+                year = date.Month >= 7 ? date.Year : date.Year - 1;
+            if (year == 0)
             {
-                if (double.TryParse(data.Get(SeasonSpec.Club + ".OverallBalance"), System.Globalization.NumberStyles.Float,
-                        System.Globalization.CultureInfo.InvariantCulture, out var balance))
-                    Plugin.L.LogInfo($"Balance: raw {balance:0} -> game format '{FM.UI.ChartCurrencyVisualFunctionLibrary.TranslateCurrencyValue(balance)}'");
+                Plugin.L.LogWarning("Season could not be determined; transfers will be unavailable.");
             }
-            catch (Exception e) { Plugin.L.LogWarning($"Currency formatting unavailable: {e.Message}"); }
 
-            int answered = 0;
-            foreach (var value in data.Values.Values) if (value != null) answered++;
-            Plugin.L.LogInfo($"Top-level values answered: {answered}/{data.Values.Count}");
-            foreach (var note in data.ListNotes) Plugin.L.LogInfo($"  list {note.Key}: {note.Value}");
+            if (_bindings == null || !_reader.Start(_bindings, this, SeasonSpec.Build(year), OnData))
+                Plugin.L.LogWarning("Game data unavailable: could not start the season read.");
+        }
+
+        private void OnData(GameRecord raw)
+        {
+            _bindings = null;
+            var data = SeasonDataBuilder.Build(raw, message => Plugin.L.LogWarning(message));
+
+            string report = DraftReport.Build(data, Money);
+            foreach (var line in report.Split('\n'))
+                if (line.Trim().Length > 0) Plugin.L.LogInfo(line.TrimEnd());
 
             var folder = string.IsNullOrWhiteSpace(Plugin.OutputFolder.Value) ? DraftWriter.DefaultFolder() : Plugin.OutputFolder.Value;
-            try { Plugin.L.LogInfo("Draft written to " + DraftWriter.Write(data, folder)); }
+            try
+            {
+                System.IO.Directory.CreateDirectory(folder);
+                var path = System.IO.Path.Combine(folder, "draft.md");
+                System.IO.File.WriteAllText(path, report, new System.Text.UTF8Encoding(false));
+                Plugin.L.LogInfo("Draft report written to " + path);
+                if (Plugin.RawDump.Value) Plugin.L.LogInfo("Raw data written to " + DraftWriter.Write(raw, folder));
+            }
             catch (Exception e) { Plugin.L.LogWarning($"Could not write the draft: {e.Message}"); }
+        }
+
+        /// <summary>Formats a raw amount (pounds) with the game's own formatter, which converts
+        /// to the currency chosen in the game's preferences.</summary>
+        private static string Money(double pounds)
+        {
+            try { return FM.UI.ChartCurrencyVisualFunctionLibrary.TranslateCurrencyValue(pounds); }
+            catch (Exception) { return "£" + pounds.ToString("N0", System.Globalization.CultureInfo.InvariantCulture); }
         }
     }
 }

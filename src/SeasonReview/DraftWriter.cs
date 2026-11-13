@@ -15,7 +15,7 @@ namespace SeasonReview
             return Path.Combine(documents, "Sports Interactive", "Football Manager 27", "SeasonReviews");
         }
 
-        public static string Write(Record data, string folder)
+        public static string Write(GameRecord data, string folder)
         {
             Directory.CreateDirectory(folder);
             var path = Path.Combine(folder, "draft-raw.txt");
@@ -27,7 +27,7 @@ namespace SeasonReview
             return path;
         }
 
-        private static void Append(StringBuilder text, Record record, int depth)
+        private static void Append(StringBuilder text, GameRecord record, int depth)
         {
             var indent = new string(' ', depth * 2);
             foreach (var pair in record.Values)

@@ -29,14 +29,14 @@ namespace SeasonReview
         {
             public Bindings.Key Root;
             public Spec Spec;
-            public Record Record;
+            public GameRecord GameRecord;
         }
 
         private sealed class Request
         {
             public Bindings.Key Key;
             public string Path;
-            public Record Record;
+            public GameRecord GameRecord;
             public ListSpec List; // null for plain values
         }
 
@@ -46,14 +46,14 @@ namespace SeasonReview
         private Bindings _bindings;
         private Il2CppSystem.Object _owner;
         private Bindings.ValueChangedCallback _callback; // kept alive while bound
-        private Action<Record> _done;
-        private Record _result;
+        private Action<GameRecord> _done;
+        private GameRecord _result;
         private int _idle, _frames, _scopeCount, _privateCount, _answered, _requested;
 
         public bool Busy => _bindings != null;
         public string Progress => $"{_answered}/{_requested} values, {_scopeCount} objects";
 
-        public bool Start(Bindings bindings, Il2CppSystem.Object owner, Spec spec, Action<Record> done)
+        public bool Start(Bindings bindings, Il2CppSystem.Object owner, Spec spec, Action<GameRecord> done)
         {
             if (Busy) return false;
 
@@ -67,11 +67,11 @@ namespace SeasonReview
             _bindings = bindings;
             _owner = owner;
             _done = done;
-            _result = new Record();
+            _result = new GameRecord();
             _idle = _frames = _scopeCount = _privateCount = _answered = _requested = 0;
             _callback = (Action<Bindings.Key, TypedValue>)OnValue;
 
-            _scopes.Enqueue(new Scope { Root = game.Key, Spec = spec, Record = _result });
+            _scopes.Enqueue(new Scope { Root = game.Key, Spec = spec, GameRecord = _result });
             return true;
         }
 
@@ -111,7 +111,7 @@ namespace SeasonReview
 
         private void Bind(Scope scope, string path, ListSpec list)
         {
-            if (list == null) scope.Record.Values[path] = null;
+            if (list == null) scope.GameRecord.Values[path] = null;
             if (HiddenValues.IsHiddenPath(path)) return; // defence in depth
 
             try
@@ -119,7 +119,7 @@ namespace SeasonReview
                 var root = scope.Root;
                 var span = Il2CppMemory.AsSpan(path);
                 var key = _bindings.Bind(ref root, ref span, _owner, _callback);
-                var request = new Request { Key = key, Path = path, Record = scope.Record, List = list };
+                var request = new Request { Key = key, Path = path, GameRecord = scope.GameRecord, List = list };
                 _open.Add(request);
                 _bound.Add(request);
                 _requested++;
@@ -159,9 +159,9 @@ namespace SeasonReview
 
             var text = value.AsString();
             if (text == null) return;
-            r.Record.Values[r.Path] = text;
+            r.GameRecord.Values[r.Path] = text;
             if (text.Length == 0) return; // may be a placeholder; keep waiting for a real value
-            Flatten(r.Record, r.Path, value);
+            Flatten(r.GameRecord, r.Path, value);
             _open.Remove(r);
             _answered++;
             _idle = 0;
@@ -169,8 +169,8 @@ namespace SeasonReview
 
         private void ExpandList(Request r, Il2CppSystem.Object obj)
         {
-            var records = new List<Record>();
-            r.Record.Lists[r.List.Key] = records;
+            var records = new List<GameRecord>();
+            r.GameRecord.Lists[r.List.Key] = records;
             string typeName = "?";
             try { typeName = obj.GetIl2CppType().FullName; } catch (Exception) { }
 
@@ -178,12 +178,12 @@ namespace SeasonReview
             try { items = Enumerate(obj, r.List.MaxItems); }
             catch (Exception e)
             {
-                r.Record.ListNotes[r.List.Key] = $"type {typeName}; cannot enumerate: {e.Message}";
+                r.GameRecord.ListNotes[r.List.Key] = $"type {typeName}; cannot enumerate: {e.Message}";
                 return;
             }
             if (items == null)
             {
-                r.Record.ListNotes[r.List.Key] = $"type {typeName}; not a collection";
+                r.GameRecord.ListNotes[r.List.Key] = $"type {typeName}; not a collection";
                 return;
             }
 
@@ -223,26 +223,26 @@ namespace SeasonReview
                     var span = Il2CppMemory.AsSpan(container + ".src");
                     var key = _bindings.Set(ref span, holder, Bindings.NodeFlags.None, (Bindings.SetFlags)0);
 
-                    var record = new Record();
+                    var record = new GameRecord();
                     records.Add(record);
                     if (wrapped != null) record.Values["."] = wrapped.AsString();
                     Flatten(record, "", wrapped);
-                    _scopes.Enqueue(new Scope { Root = key, Spec = r.List.Item, Record = record });
+                    _scopes.Enqueue(new Scope { Root = key, Spec = r.List.Item, GameRecord = record });
                 }
                 catch (Exception e)
                 {
-                    r.Record.ListNotes[r.List.Key] = $"type {typeName}; item failed: {e.Message}";
+                    r.GameRecord.ListNotes[r.List.Key] = $"type {typeName}; item failed: {e.Message}";
                     return;
                 }
             }
-            r.Record.ListNotes[r.List.Key] = $"type {typeName}; {records.Count} items of {itemType}";
+            r.GameRecord.ListNotes[r.List.Key] = $"type {typeName}; {records.Count} items of {itemType}";
         }
 
         /// <summary>
         /// Some values are small records (property id -> value) delivered in one piece. Their
         /// fields are copied into the record as "path.FieldName"; hidden values are skipped.
         /// </summary>
-        private static void Flatten(Record record, string path, TypedValue value)
+        private static void Flatten(GameRecord record, string path, TypedValue value)
         {
             try
             {

@@ -10,121 +10,93 @@ namespace SeasonReview
         public const string Club = Team + ".Club";
         public const string Division = Team + ".Division";
         public const string Confidence = Team + ".TeamConfidence";
-        public const string Manager = "GameCurrentManager";
+        public const string InjurySummary = Team + ".SeasonInjurySummaryData";
 
-        public const string Players = Team + ".Players";
-        public const string LeagueTable = "LeagueTable"; // per stage, see Stages
-        public const string BalanceHistory = Club + ".FinanceBalanceHistory";
-        public const string Stages = Division + ".CurrentStages";
-        public const string Expectations = Club + ".ClubVisionMeetingSeasonExpectations.ClubSeasonExpectationsCompetitionList";
-        public const string Injuries = Team + ".CurrentInjuryList";
-        public const string PastInjuries = Team + ".SeasonInjurySummaryData.PastInjuries";
+        // Result list names
+        public const string Players = "Players";
+        public const string Fixtures = "Fixtures";
+        public const string Stages = "Stages";
+        public const string LeagueTable = "LeagueTable";
+        public const string Transfers = "Transfers";
+        public const string TransfersIn = "Division.SeasonTransferInfo.SeasonTransfersInPlayers";
+        public const string TransfersOut = "Division.SeasonTransferInfo.SeasonTransfersOutPlayers";
+        public const string Objectives = "Objectives";
+        public const string BalanceHistory = "BalanceHistory";
+        public const string PastInjuries = "PastInjuries";
 
-        public static Spec Build()
+        /// <summary>Small first read: what season is it?</summary>
+        public static Spec BuildHeader() => new Spec().Value(
+            "CurrentGameDate", "CurrentGameYear", Team + ".Name", Division + ".Name", Division + ".SeasonName");
+
+        /// <param name="seasonYear">Calendar year the season started in (the game's "Year" context).</param>
+        public static Spec Build(int seasonYear)
         {
             var spec = new Spec().Value(
-                "CurrentGameDate", "CurrentGameYear", "GameStartDate",
-
+                "CurrentGameDate",
                 Team + ".Name", Team + ".LongName", Team + ".LeaguePosition", Team + ".LeaguePositionString",
-                Team + ".MediaExpectedPosition", Team + ".LeagueTableName",
-                Division + ".Name", Division + ".ShortName", Division + ".SeasonName",
+                Team + ".MediaExpectedPosition",
+                Division + ".Name", Division + ".SeasonName",
 
-                Club + ".Name", Club + ".ShortName",
                 Club + ".OverallBalance", Club + ".FinancialStatus",
                 Club + ".TotalIncomeThisSeason", Club + ".TotalExpenditureThisSeason",
-                Club + ".TotalIncomeLastSeason", Club + ".TotalExpenditureLastSeason",
-                Club + ".CurrentWageSpending", Club + ".CommittedWageSpending", Club + ".WageBudget",
-                Club + ".RemainingWageBudget", Club + ".TransferBudget", Club + ".OriginalTransferBudget",
-                Club + ".TransferExpenditureThisSeason", Club + ".ProjectionProfitLoss", Club + ".ProjectionBalance",
-                Club + ".PastTransfersInAmount", Club + ".PastTransfersOutAmount",
-                Club + ".CurrentWageSpendingWithText", Club + ".WagesData.CurrentWageTotalString",
+                Club + ".CurrentWageSpending", Club + ".WageBudget", Club + ".CurrentWageSpendingWithText",
+                Club + ".TransferBudget", Club + ".TransferExpenditureThisSeason",
 
-                Confidence + ".BoardConfidenceOverallGrade", Confidence + ".BoardConfidenceOverallString",
-                Confidence + ".BoardMatchGrade", Confidence + ".BoardMatchString",
-                Confidence + ".BoardSquadConfidenceGrade", Confidence + ".BoardSquadConfidenceString",
-                Confidence + ".BoardTransferConfidenceOverallGrade", Confidence + ".BoardTransferConfidenceOverallSummaryText",
-                Confidence + ".BoardVisionGrade", Confidence + ".BoardVisionString",
-                Confidence + ".SupporterConfidenceOverallGrade", Confidence + ".SupporterConfidenceOverallString",
-                Confidence + ".SupporterMatchGrade", Confidence + ".SupporterMatchString",
-                Confidence + ".SupporterSquadConfidenceGrade", Confidence + ".SupporterSquadConfidenceString",
-                Confidence + ".SupporterTransferConfidenceOverallGrade", Confidence + ".SupporterTransferConfidenceOverallSummaryText",
-                Confidence + ".SupporterVisionGrade", Confidence + ".SupporterVisionString",
+                Confidence + ".BoardConfidenceOverallString", Confidence + ".BoardMatchString",
+                Confidence + ".BoardSquadConfidenceString", Confidence + ".BoardTransferConfidenceOverallSummaryText",
+                Confidence + ".BoardVisionString",
+                Confidence + ".SupporterConfidenceOverallString", Confidence + ".SupporterMatchString",
+                Confidence + ".SupporterSquadConfidenceString", Confidence + ".SupporterTransferConfidenceOverallSummaryText",
+                Confidence + ".SupporterVisionString",
 
-                Team + ".SeasonInjurySummaryData.MajorInjuryCount", Team + ".SeasonInjurySummaryData.ModerateInjuryCount",
-                Team + ".SeasonInjurySummaryData.MinorInjuryCount", Team + ".SeasonInjurySummaryData.SlightInjuryCount");
+                InjurySummary + ".MajorInjuryCount", InjurySummary + ".ModerateInjuryCount",
+                InjurySummary + ".MinorInjuryCount", InjurySummary + ".SlightInjuryCount");
 
-            spec.List(Players, new Spec().Value(
-                "Name", "Age", "DateOfBirth", "Position", "IsLoanIn", "IsInjured",
-                "ClubAppearancesThisSeason", "ClubGoalsThisSeason", "ClubAssistsThisSeason", "ClubAverageRatingThisSeason",
-                "Minutes", "TimeMissedThisSeason", "InjuriesPercentageMissedString"), 80);
+            spec.List(Team + ".Players", new Spec().Value(
+                "Name", "Age", "ClubAppearancesThisSeason", "ClubGoalsThisSeason", "ClubAssistsThisSeason",
+                "ClubAverageRatingThisSeason", "Minutes"), 80, Players);
 
-            // Lists that need context values hang off the team object, read as its own scope.
-            var team = new Spec().Context("team", Spec.Self);
-
+            // Fixture list of the whole season: the game's screen passes these context values.
             var fixture = new Spec().Value(
-                "Fixture.FixtureDate", "Fixture.Competition.Name", "Fixture.StageName",
-                "Fixture.HomeTeam.Name", "Fixture.AwayTeam.Name", "Fixture.HomeScore", "Fixture.AwayScore",
-                "Fixture.HasResult", "Fixture.IsFutureMatch", "Fixture.Result",
-                "Fixture.HomeTeamWon", "Fixture.AwayTeamWon");
+                "FixtureDate", "Competition.Name", "Competition.IsFriendly", "StageName",
+                "HomeTeam.Name", "AwayTeam.Name", "HomeScore", "AwayScore", "HasResult", "Result",
+                "HomeTeamWon", "AwayTeamWon");
             spec.Object(Team, new Spec()
                 .Context("PreviousAmount", -1).Context("FutureAmount", -1)
                 .Context("FixturePadding", false).Context("YearIndex", 0)
-                .List("FixtureList", fixture, 90), "Fixtures");
+                .List("FixtureList", fixture, 90, Fixtures), Fixtures);
 
             var tableRow = new Spec().Value(
                 "Team.Name", "TablePosition", "LeagueGamesPlayed", "LeagueGamesWon", "LeagueGamesDrawn", "LeagueGamesLost",
-                "LeagueGoalsFor", "LeagueGoalsAgainst", "LeagueGoalDifference", "LeaguePoints", "LeagueFate.Name");
-            spec.List(Stages, new Spec()
+                "LeagueGoalsFor", "LeagueGoalsAgainst", "LeagueGoalDifference", "LeaguePoints");
+            spec.List(Division + ".CurrentStages", new Spec()
                 .Context("LeagueTableType", 0)
-                .Value("StageName", "IsLeagueStage", "IsCupStage", "DefaultLeagueTableType")
-                .List(LeagueTable, tableRow, 40), 12);
+                .Value("IsLeagueStage")
+                .List("LeagueTable", tableRow, 40, LeagueTable), 12, Stages);
 
-            // Season transfer summary of the club within its division; context values are
-            // being explored (year as calendar year or 0; transfer type 0 or 8 seen on screen).
-            var seasonTransfers = new[] {
-                "SeasonTransfersInCount", "SeasonTransfersInTotalValue", "SeasonTransfersOutCount",
-                "SeasonTransfersOutTotalValue", "SeasonTransfersNetSpend" };
-            foreach (var year in new[] { 0, 2026 })
-            foreach (var type in new[] { 0, 8 })
-            {
-                var summary = new Spec().Context("team", Spec.Self).Context("Year", year).Context("TransferType", type);
-                foreach (var name in seasonTransfers) summary.Value("Division.SeasonTransferInfo." + name);
-                var person = new Spec().Value("Name", "Age");
-                summary.List("Division.SeasonTransferInfo.SeasonTransfersInPlayers", person, 60);
-                summary.List("Division.SeasonTransferInfo.SeasonTransfersOutPlayers", person, 60);
-                spec.Object(Team, summary, $"SeasonTransfers(year={year},type={type})");
-            }
+            // The club's transfers this season, as listed for its division.
+            var transfer = new Spec().Value("Player.Name", "BuyingTeam.Name", "SellingTeam.Name", "Fee", "IsOnLoan", "Date");
+            spec.Object(Team, new Spec()
+                .Context("team", Spec.Self).Context("Year", seasonYear).Context("TransferType", 0)
+                .Value("Division.SeasonTransferInfo.SeasonTransfersNetSpend")
+                .List(TransfersIn, transfer, 80)
+                .List(TransfersOut, transfer, 80), Transfers);
 
-            // Club vision objectives; setter/type values are being explored.
-            var objective = new Spec().Value(
-                "VisionObjectiveName", "VisionObjectiveCategory", "VisionObjectiveImportance", "VisionObjectiveStatus",
-                "VisionObjectiveProgress", "VisionObjectiveYearString", "Competition.Name");
-            foreach (var setter in new[] { 0, 1 })
-            foreach (var type in new[] { 0, 1, 2 })
-                spec.Object(Club, new Spec()
-                    .Context("VisionObjectiveSetter", setter).Context("VisionObjectiveType", type)
-                    .Context("VisionObjectiveYear", 0).Context("ViewID", 0)
-                    .Context("VisionIsUsingPerformanceData", true)
-                    .List("VisionObjectiveList", objective, 40), $"Objectives(setter={setter},type={type})");
+            // Board objectives (setter 1 = board, type 0 = all), as on the club vision screen.
+            spec.Object(Club, new Spec()
+                .Context("VisionObjectiveSetter", 1).Context("VisionObjectiveType", 0)
+                .Context("VisionObjectiveYear", 0).Context("ViewID", 0)
+                .Context("VisionIsUsingPerformanceData", true)
+                .List("VisionObjectiveList", new Spec().Value("Competition.Name"), 40, Objectives), Objectives);
 
-            var text = new Spec(); // items are plain strings or small records; read as they come
-            spec.List(BalanceHistory, text, 60);
+            var asDelivered = new Spec(); // small records or strings, read as they come
+            spec.List(Club + ".FinanceBalanceHistory", asDelivered, 80, BalanceHistory);
             foreach (var who in new[] { "Board", "Supporter" })
             {
-                spec.List(Confidence + "." + who + "FeedbackHighlights", text, 12);
-                spec.List(Confidence + "." + who + "FeedbackCriticism", text, 12);
+                spec.List(Confidence + "." + who + "FeedbackHighlights", asDelivered, 12, who + "Highlights");
+                spec.List(Confidence + "." + who + "FeedbackCriticism", asDelivered, 12, who + "Criticism");
             }
-            spec.List(Team + ".SeasonInjurySummaryData.InjuryRecap", text, 40);
-
-            spec.List(Expectations, new Spec().Value(
-                "ClubSeasonExpectationsCompetition.Name", "ClubSeasonExpectationsCompetitionImportance",
-                "ClubSeasonExpectationsIsCompetitionFinished"), 12);
-
-            var injury = new Spec().Value(
-                "Player.Name", "InjuryDescription", "InjuryDate", "InjuryDurationDays", "InjuryDurationLong", "IsActive");
-            spec.List(Injuries, new Spec().Value(
-                "Name", "CurrentInjury.InjuryDescription", "CurrentInjury.InjuryDate", "CurrentInjury.InjuryDurationLong"), 40);
-            spec.List(PastInjuries, injury, 80);
+            spec.List(InjurySummary + ".PastInjuries", new Spec().Value("Player.Name"), 120, PastInjuries);
 
             return spec;
         }

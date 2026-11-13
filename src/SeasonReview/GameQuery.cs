@@ -46,17 +46,17 @@ namespace SeasonReview
     }
 
     /// <summary>What came back: null for a value the game did not answer.</summary>
-    internal sealed class Record
+    internal sealed class GameRecord
     {
         public readonly Dictionary<string, string> Values = new();
-        public readonly Dictionary<string, List<Record>> Lists = new();
+        public readonly Dictionary<string, List<GameRecord>> Lists = new();
 
         /// <summary>Diagnostic notes per list path (runtime type, item count, problems).</summary>
         public readonly Dictionary<string, string> ListNotes = new();
 
         public string Get(string path) => Values.TryGetValue(path, out var v) ? v : null;
 
-        public List<Record> Items(string path) =>
-            Lists.TryGetValue(path, out var l) ? l : new List<Record>();
+        public List<GameRecord> Items(string path) =>
+            Lists.TryGetValue(path, out var l) ? l : new List<GameRecord>();
     }
 }
