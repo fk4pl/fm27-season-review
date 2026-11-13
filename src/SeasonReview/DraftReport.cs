@@ -79,8 +79,12 @@ namespace SeasonReview
             {
                 t.AppendLine("- Balance at season start" + (d.BalanceStartDate != null ? $" ({Day(d.BalanceStartDate)})" : "") + $": {Money(d.BalanceStart)}");
                 t.AppendLine($"- Balance now: {Money(d.BalanceEnd)}");
-                t.AppendLine("- Profit/loss for the season (change in balance): " +
+                t.AppendLine("- Change in balance over the season (cash): " +
                              Signed(d.BalanceStart != null && d.BalanceEnd != null ? d.BalanceEnd - d.BalanceStart : null, money));
+                t.AppendLine($"- Income this season (the game's season total): {Money(d.Income)}");
+                t.AppendLine($"- Expenditure this season (the game's season total): {Money(d.Expenditure)}");
+                if (d.ProjectedProfit != null)
+                    t.AppendLine("- Projected profit/loss this season (the game's projection): " + Signed(d.ProjectedProfit, money));
                 t.AppendLine("- Wage bill: " + (d.WeeklyWages != null ? money(d.WeeklyWages.Value * 52) + " per year" : Unavailable));
                 if (d.FinancialStatus != null) t.AppendLine($"- Financial status: {d.FinancialStatus}");
                 t.AppendLine();

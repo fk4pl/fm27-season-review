@@ -40,7 +40,7 @@ namespace SeasonReview
                 Club + ".OverallBalance", Club + ".FinancialStatus",
                 Club + ".TotalIncomeThisSeason", Club + ".TotalExpenditureThisSeason",
                 Club + ".CurrentWageSpending", Club + ".WageBudget", Club + ".CurrentWageSpendingWithText",
-                Club + ".TransferBudget", Club + ".TransferExpenditureThisSeason",
+                Club + ".TotalIncomeThisSeasonTurnover", Club + ".ProjectionProfitLoss",
 
                 Confidence + ".BoardConfidenceOverallString", Confidence + ".BoardMatchString",
                 Confidence + ".BoardSquadConfidenceString", Confidence + ".BoardTransferConfidenceOverallSummaryText",
@@ -64,6 +64,7 @@ namespace SeasonReview
             spec.Object(Team, new Spec()
                 .Context("PreviousAmount", -1).Context("FutureAmount", -1)
                 .Context("FixturePadding", false).Context("YearIndex", 0)
+                .Context("StringType", 0) // for the stage name; value still being explored
                 .List("FixtureList", fixture, 90, Fixtures), Fixtures);
 
             var tableRow = new Spec().Value(
@@ -96,11 +97,6 @@ namespace SeasonReview
                 spec.List(Confidence + "." + who + "FeedbackHighlights", asDelivered, 12, who + "Highlights");
                 spec.List(Confidence + "." + who + "FeedbackCriticism", asDelivered, 12, who + "Criticism");
             }
-            // Research only (raw dump): what the season income/expenditure totals are made of.
-            var breakdownRow = new Spec().Value("Name", "DisplayValue", "PropertyValue");
-            spec.List(Club + ".IncomeBreakdownThisSeason", breakdownRow, 40, "IncomeBreakdown");
-            spec.List(Club + ".ExpenditureBreakdownThisSeason", breakdownRow, 40, "ExpenditureBreakdown");
-
             spec.List(InjurySummary + ".PastInjuries", new Spec().Value("Player.Name"), 120, PastInjuries);
 
             return spec;

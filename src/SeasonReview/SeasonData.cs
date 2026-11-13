@@ -88,6 +88,9 @@ namespace SeasonReview
 
         // Finances
         public double? BalanceStart, BalanceEnd, WeeklyWages, WeeklyWageBudget;
+        /// <summary>The game's own accounting totals for the season (not cash: e.g. sponsorship
+        /// is booked up front), and its projected profit/loss for the season.</summary>
+        public double? Income, Expenditure, ProjectedProfit;
         public DateTime? BalanceStartDate;
         public string FinancialStatus;
 
@@ -342,6 +345,9 @@ namespace SeasonReview
         private static void BuildFinances(GameRecord r, SeasonData data)
         {
             data.BalanceEnd = Number(r.Get(SeasonSpec.Club + ".OverallBalance"));
+            data.Income = Number(r.Get(SeasonSpec.Club + ".TotalIncomeThisSeason"));
+            data.Expenditure = Number(r.Get(SeasonSpec.Club + ".TotalExpenditureThisSeason"));
+            data.ProjectedProfit = ProjectionValue(r, SeasonSpec.Club + ".ProjectionProfitLoss.ProjectionEndOfSeasonOne");
             data.WeeklyWages = Number(r.Get(SeasonSpec.Club + ".CurrentWageSpending"));
             data.WeeklyWageBudget = Number(r.Get(SeasonSpec.Club + ".WageBudget"));
             data.FinancialStatus = Text(r.Get(SeasonSpec.Club + ".FinancialStatus.DisplayValue"));
@@ -408,6 +414,17 @@ namespace SeasonReview
             var result = new List<GameRecord>();
             foreach (var parent in r.Items(outer)) result.AddRange(parent.Items(inner));
             return result;
+        }
+
+        // A projection point is a small record; take its numeric value field.
+        private static double? ProjectionValue(GameRecord r, string path)
+        {
+            foreach (var suffix in new[] { ".PropertyValue", ".Value", ".GraphPointY" })
+            {
+                var value = Number(r.Get(path + suffix));
+                if (value != null) return value;
+            }
+            return null;
         }
 
         /// <summary>First day of the season: 1 July of the first year for "2026/27", 1 January for "2026".</summary>

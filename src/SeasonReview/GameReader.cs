@@ -242,7 +242,7 @@ namespace SeasonReview
         /// Some values are small records (property id -> value) delivered in one piece. Their
         /// fields are copied into the record as "path.FieldName"; hidden values are skipped.
         /// </summary>
-        private static void Flatten(GameRecord record, string path, TypedValue value)
+        private static void Flatten(GameRecord record, string path, TypedValue value, int depth = 0)
         {
             try
             {
@@ -259,7 +259,9 @@ namespace SeasonReview
                     string name = identifiers?.GetInfo(id)?.Name ?? ("#" + id);
                     if (HiddenValues.IsHidden(name)) continue;
                     if (!dictionary.TryGetValue(id, out var field) || field == null) continue;
-                    record.Values[path.Length == 0 ? name : path + "." + name] = field.AsString();
+                    string fieldPath = path.Length == 0 ? name : path + "." + name;
+                    record.Values[fieldPath] = field.AsString();
+                    if (depth < 2) Flatten(record, fieldPath, field, depth + 1); // records inside records
                 }
             }
             catch (Exception) { /* not a record, or not readable: keep the plain value */ }
