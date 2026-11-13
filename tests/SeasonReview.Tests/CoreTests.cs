@@ -319,6 +319,25 @@ namespace SeasonReview.Tests
         }
 
         [Fact]
+        public void LeagueReadsSubStagesOfTheSeason()
+        {
+            // As in the game after the season ended: no current stages; the season's stage row
+            // has an empty table and its child row (e.g. a split) holds the club.
+            var raw = TestData.Season();
+            var table = raw.Items(SeasonSpec.Stages)[0];
+            raw.Lists.Remove(SeasonSpec.Stages);
+            var row = new GameRecord();
+            row.Lists[SeasonSpec.LeagueTable] = new List<GameRecord>();
+            row.Lists[SeasonSpec.StageChildren] = new List<GameRecord> { table };
+            var division = new GameRecord();
+            division.Lists[SeasonSpec.AllStages] = new List<GameRecord> { row };
+            raw.Lists[SeasonSpec.AllStages] = new List<GameRecord> { division };
+            var d = SeasonDataBuilder.Build(raw, _ => { });
+            Assert.False(d.LeagueFromFixtures);
+            Assert.Equal(11, d.PointsFromTable);
+        }
+
+        [Fact]
         public void LeagueUsesTheSeasonStagesWhenCurrentOnesMoveOn()
         {
             var raw = TestData.Season();

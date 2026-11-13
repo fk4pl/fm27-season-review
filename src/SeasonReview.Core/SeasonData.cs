@@ -230,8 +230,13 @@ namespace SeasonReview
 
         // Stages from both table sources: the division's current stages, and the stages of
         // the season (read through the division object, one level deeper).
-        private static IEnumerable<GameRecord> TableStages(GameRecord r) =>
-            r.Items(SeasonSpec.Stages).Concat(Nested(r, SeasonSpec.AllStages, SeasonSpec.AllStages));
+        private static IEnumerable<GameRecord> TableStages(GameRecord r)
+        {
+            var seasonStages = Nested(r, SeasonSpec.AllStages, SeasonSpec.AllStages);
+            return r.Items(SeasonSpec.Stages)
+                .Concat(seasonStages)
+                .Concat(seasonStages.SelectMany(stage => stage.Items(SeasonSpec.StageChildren)));
+        }
 
         // Diagnostic: how many stages and rows each table source returned.
         private static string Describe(GameRecord r)
@@ -239,8 +244,10 @@ namespace SeasonReview
             string One(string name, List<GameRecord> stages) =>
                 name + ": " + stages.Count + " stages [" +
                 string.Join(", ", stages.Select(s => s.Items(SeasonSpec.LeagueTable).Count + " rows")) + "]";
+            var seasonStages = Nested(r, SeasonSpec.AllStages, SeasonSpec.AllStages);
             return One("current stages", r.Items(SeasonSpec.Stages)) + "; "
-                   + One("season stages", Nested(r, SeasonSpec.AllStages, SeasonSpec.AllStages));
+                   + One("season stages", seasonStages) + "; "
+                   + One("sub-stages", seasonStages.SelectMany(stage => stage.Items(SeasonSpec.StageChildren)).ToList());
         }
 
         private static int? Positive(int? n) => n is > 0 ? n : null;
