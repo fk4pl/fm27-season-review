@@ -44,7 +44,8 @@ mkdir -p dist
 zip_path="dist/SeasonReview-$version.zip"
 rm -f -- "$zip_path"
 (cd "$stage" && zip -q -r -X "$OLDPWD/$zip_path" .)
-sha256sum "$zip_path" > "$zip_path.sha256"
+# Checksum file lists the bare file name, so `sha256sum -c` works wherever both files are downloaded.
+(cd dist && sha256sum "SeasonReview-$version.zip" > "SeasonReview-$version.zip.sha256")
 echo "Built $zip_path"
 unzip -l "$zip_path"
 cat "$zip_path.sha256"
