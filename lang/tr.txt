@@ -95,11 +95,12 @@ league.points = P
 league.total = Toplam
 league.home = İç saha
 league.away = Deplasman
+league.fromresults = Lig tablosu okunamadığı için bu satır kulübün maç sonuçlarından hesaplandı; varsa puan silme cezaları dahil değildir.
 
 players.scope = İstatistikler kulübün bu sezon oynadığı tüm turnuvaları kapsar.
 players.pots = Sezonun oyuncusu
 players.pots.text = {player}: {apps}, ortalama puan {rating}, {goals} ve {assists}.
-players.pots.how = Ortalama puana göre, maç sayısıyla ağırlıklandırılarak seçildi.
+players.pots.how = Seçim: kulübün maçlarının en az üçte ikisinde (en az {min}; toplam {matches}) forma giyenler arasında en yüksek ortalama puan; eşitlikte gol ve asist toplamı belirleyici.
 players.scorers = En çok gol atanlar
 players.assists = En çok asist yapanlar
 players.ratings = En yüksek ortalama puan (en çok oynayanın maç sayısının en az üçte biri)

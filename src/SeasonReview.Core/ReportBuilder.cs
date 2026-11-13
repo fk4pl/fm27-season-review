@@ -65,18 +65,17 @@ namespace SeasonReview
             var section = Section("summary");
             if (Unavailable(section, "summary")) return section;
 
-            if (_d.Total != null && _d.LeaguePosition != null)
+            if (_d.Total != null)
             {
-                var story = new List<string>
-                {
-                    _s.Format(_d.SeasonComplete ? "summary.finished" : "summary.current",
+                var story = new List<string>();
+                if (_d.LeaguePosition != null)
+                    story.Add(_s.Format(_d.SeasonComplete ? "summary.finished" : "summary.current",
                         ("club", _d.Club), ("division", _d.Division), ("position", _s.Ordinal(_d.LeaguePosition.Value)),
                         ("teams", N(_d.LeagueSize ?? 0)), ("points", _s.Count(_d.PointsFromTable ?? _d.Total.Points, "point")),
-                        ("played", _s.Count(_d.Total.Played, "match"))),
-                    _s.Format("summary.record", ("won", N(_d.Total.Won)), ("drawn", N(_d.Total.Drawn)),
-                        ("lost", N(_d.Total.Lost)), ("for", N(_d.Total.GoalsFor)), ("against", N(_d.Total.GoalsAgainst))),
-                };
-                if (_d.MediaPrediction is int predicted && predicted > 0)
+                        ("played", _s.Count(_d.Total.Played, "match"))));
+                story.Add(_s.Format("summary.record", ("won", N(_d.Total.Won)), ("drawn", N(_d.Total.Drawn)),
+                        ("lost", N(_d.Total.Lost)), ("for", N(_d.Total.GoalsFor)), ("against", N(_d.Total.GoalsAgainst))));
+                if (_d.LeaguePosition != null && _d.MediaPrediction is int predicted && predicted > 0)
                 {
                     int actual = _d.LeaguePosition.Value;
                     string key = actual < predicted ? "summary.media.better" : actual > predicted ? "summary.media.worse" : "summary.media.same";
@@ -149,6 +148,7 @@ namespace SeasonReview
                 Numeric = new[] { false, true, true, true, true, true, true, true },
             };
             table.Rows.Add(LeagueRow(_s.Get("league.total"), _d.Total, _d.PointsFromTable));
+            if (_d.LeagueFromFixtures) section.Add(new Note { Text = _s.Get("league.fromresults") });
             if (_d.Home != null && _d.Home.Played > 0) table.Rows.Add(LeagueRow(_s.Get("league.home"), _d.Home, null));
             if (_d.Away != null && _d.Away.Played > 0) table.Rows.Add(LeagueRow(_s.Get("league.away"), _d.Away, null));
             section.Add(table);
@@ -177,7 +177,9 @@ namespace SeasonReview
                     Text = pots.Name,
                     Detail = _s.Format("players.pots.text", ("player", pots.Name), ("apps", _s.Count(pots.Appearances, "appearance")),
                         ("rating", Rating(pots)), ("goals", _s.Count(pots.Goals, "goal")), ("assists", _s.Count(pots.Assists, "assist")))
-                        + " " + _s.Get("players.pots.how"),
+                        + " " + _s.Format("players.pots.how",
+                            ("min", _s.Count(_d.PlayerOfTheSeasonMinimum, "appearance")),
+                            ("matches", _s.Count(_d.CompetitiveMatches, "match"))),
                 });
 
             int most = _d.Players.Count == 0 ? 0 : _d.Players.Max(p => p.Appearances);

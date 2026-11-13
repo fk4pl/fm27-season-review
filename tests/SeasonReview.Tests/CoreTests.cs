@@ -232,10 +232,68 @@ namespace SeasonReview.Tests
         }
 
         [Fact]
-        public void PlayerOfTheSeasonNeedsEnoughAppearances()
+        public void PlayerOfTheSeasonNeedsTwoThirdsOfTheClubsMatches()
         {
             var d = Build();
+            Assert.Equal(8, d.CompetitiveMatches);          // 6 league + 2 cup; the friendly does not count
+            Assert.Equal(6, d.PlayerOfTheSeasonMinimum);    // two thirds of 8, rounded up
             Assert.Equal("Striker One", d.PlayerOfTheSeason.Name); // Sub Three has 8.6 but only 4 apps
+        }
+
+        [Fact]
+        public void PlayerOfTheSeasonPrefersRatingThenGoalsPlusAssists()
+        {
+            var players = new List<PlayerSeason>
+            {
+                new() { Name = "Busy", Appearances = 46, AverageRating = 6.91, Goals = 8, Assists = 11 },
+                new() { Name = "Scorer", Appearances = 40, AverageRating = 7.06, Goals = 22, Assists = 3 },
+                new() { Name = "Rare", Appearances = 20, AverageRating = 7.50, Goals = 5, Assists = 0 },
+                new() { Name = "Tied", Appearances = 38, AverageRating = 7.06, Goals = 2, Assists = 1 },
+            };
+            var pick = SeasonDataBuilder.PickPlayerOfTheSeason(players, 50, out int minimum);
+            Assert.Equal(34, minimum);
+            Assert.Equal("Scorer", pick.Name); // "Rare" is below 34 apps; "Tied" loses on goals + assists
+        }
+
+        [Fact]
+        public void LeagueFallsBackToResultsWithoutATable()
+        {
+            var raw = TestData.Season();
+            raw.Lists.Remove(SeasonSpec.Stages);
+            var warnings = new List<string>();
+            var d = SeasonDataBuilder.Build(raw, warnings.Add);
+            Assert.DoesNotContain("league", d.Unavailable);
+            Assert.True(d.LeagueFromFixtures);
+            Assert.Equal((6, 3, 2, 1, 11, 7, 11), (d.Total.Played, d.Total.Won, d.Total.Drawn, d.Total.Lost, d.Total.GoalsFor, d.Total.GoalsAgainst, d.Total.Points));
+            Assert.Equal(3, d.LeagueSize);       // two opponents + the club
+            Assert.Equal(2, d.LeaguePosition);   // from Team.LeaguePosition
+            Assert.Contains(warnings, w => w.Contains("calculated from results"));
+        }
+
+        [Fact]
+        public void LeagueIgnoresNextSeasonsEmptyTable()
+        {
+            var raw = TestData.Season();
+            var row = raw.Items(SeasonSpec.Stages)[0].Items(SeasonSpec.LeagueTable)[1];
+            foreach (var key in new[] { "LeagueGamesPlayed", "LeagueGamesWon", "LeagueGamesDrawn", "LeagueGamesLost", "LeaguePoints" })
+                row.Values[key] = "0";
+            var d = SeasonDataBuilder.Build(raw, _ => { });
+            Assert.True(d.LeagueFromFixtures);
+            Assert.Equal(6, d.Total.Played);
+        }
+
+        [Fact]
+        public void LeagueUsesTheSeasonStagesWhenCurrentOnesMoveOn()
+        {
+            var raw = TestData.Season();
+            var stages = raw.Lists[SeasonSpec.Stages];
+            raw.Lists.Remove(SeasonSpec.Stages);
+            var division = new GameRecord();
+            division.Lists[SeasonSpec.AllStages] = stages;
+            raw.Lists[SeasonSpec.AllStages] = new List<GameRecord> { division };
+            var d = SeasonDataBuilder.Build(raw, _ => { });
+            Assert.False(d.LeagueFromFixtures);
+            Assert.Equal(11, d.PointsFromTable);
         }
 
         [Fact]
@@ -389,6 +447,7 @@ namespace SeasonReview.Tests
             var md = MarkdownRenderer.Render(Document(TestData.English()));
             Assert.Contains("Kartal SK finished 2nd of 3 in the Example League with 11 points.", md);
             Assert.Contains("Striker One: 30 appearances, average rating 7.40, 20 goals and 3 assists.", md);
+            Assert.Contains("at least 6 appearances (two thirds of the club's 8 matches); ties go to goals plus assists.", md);
             Assert.Contains("1 injury this season, 21 days lost in total.", md);
             Assert.Contains("Longest winning run in the league: 2 matches.", md);
             Assert.Contains("better than the media's pre-season prediction of 3rd", md);
@@ -421,6 +480,16 @@ namespace SeasonReview.Tests
             Assert.Contains("(1 league match left)", Document(TestData.English(), remaining: 1).Notice);
             var none = Document(TestData.English());
             Assert.Null(none.Notice);
+        }
+
+        [Fact]
+        public void ResultsBasedLeagueRecordIsFlagged()
+        {
+            var raw = TestData.Season();
+            raw.Lists.Remove(SeasonSpec.Stages);
+            var md = MarkdownRenderer.Render(ReportBuilder.Build(SeasonDataBuilder.Build(raw, _ => { }), TestData.English(), TestData.Money, "test"));
+            Assert.Contains("calculated from the club's results", md);
+            Assert.Contains("Kartal SK finished 2nd of 3 in the Example League with 11 points.", md);
         }
 
         [Fact]

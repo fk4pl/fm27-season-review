@@ -95,11 +95,12 @@ league.points = Pts
 league.total = Total
 league.home = Home
 league.away = Away
+league.fromresults = The league table could not be read, so this record was calculated from the club's results; point deductions, if any, are not included.
 
 players.scope = Statistics cover all competitions for the club this season.
 players.pots = Player of the Season
 players.pots.text = {player}: {apps}, average rating {rating}, {goals} and {assists}.
-players.pots.how = Chosen on average rating, weighted by appearances.
+players.pots.how = Chosen as the highest average rating among players with at least {min} (two thirds of the club's {matches}); ties go to goals plus assists.
 players.scorers = Top scorers
 players.assists = Most assists
 players.ratings = Best average rating (at least a third of the most-used player's appearances)

@@ -75,7 +75,7 @@ namespace SeasonReview.Tests
             stage.Lists[SeasonSpec.LeagueTable] = new List<GameRecord>
             {
                 Row("Rival FC", 1, 6, 4, 1, 1, 10, 4, 13),
-                Row(Club, 2, 6, 3, 2, 1, 9, 6, 11),
+                Row(Club, 2, 6, 3, 2, 1, 11, 7, 11), // matches the fixtures below
                 Row("Third United", 3, 6, 0, 0, 6, 2, 15, 0),
             };
             r.Lists[SeasonSpec.Stages] = new List<GameRecord> { stage };

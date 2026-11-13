@@ -16,6 +16,7 @@ namespace SeasonReview
         public const string Players = "Players";
         public const string Fixtures = "Fixtures";
         public const string Stages = "Stages";
+        public const string AllStages = "AllStages";
         public const string LeagueTable = "LeagueTable";
         public const string Transfers = "Transfers";
         public const string TransfersIn = "Division.SeasonTransferInfo.SeasonTransfersInPlayers";
@@ -76,6 +77,15 @@ namespace SeasonReview
                 .Context("LeagueTableType", 0)
                 .Value("IsLeagueStage")
                 .List("LeagueTable", tableRow, 40, LeagueTable), 12, Stages);
+            // Second source for the table: the stages of the given season. Right after the
+            // last match the "current" stages can already belong to the next season.
+            // (CompReference.AllStages needs the "Year" and "NextSeason" contexts.)
+            spec.Object(Division, new Spec()
+                .Context("Year", seasonYear).Context("NextSeason", false)
+                .List("AllStages", new Spec()
+                    .Context("LeagueTableType", 0)
+                    .Value("IsLeagueStage")
+                    .List("LeagueTable", tableRow, 40, LeagueTable), 12, AllStages), AllStages);
 
             // The club's transfers this season, as listed for its division.
             var transfer = new Spec().Value("Player.Name", "BuyingTeam.Name", "SellingTeam.Name", "Fee", "IsOnLoan", "Date");

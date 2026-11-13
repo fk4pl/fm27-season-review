@@ -71,6 +71,9 @@ namespace SeasonReview
 
         // Summary / league
         public int? LeaguePosition, MediaPrediction, LeagueSize, PointsFromTable;
+        /// <summary>True when the league table could not be read and the league record was
+        /// calculated from the club's results (point deductions are then not included).</summary>
+        public bool LeagueFromFixtures;
         public string LeaguePositionText;
         public LeagueRecord Total, Home, Away;
         public int LongestWinningRun, LongestUnbeatenRun;
@@ -83,6 +86,9 @@ namespace SeasonReview
         // Players
         public List<PlayerSeason> Players = new();
         public PlayerSeason PlayerOfTheSeason;
+        /// <summary>Competitive matches the club played, and the appearances needed to qualify
+        /// for player of the season (two thirds of them).</summary>
+        public int CompetitiveMatches, PlayerOfTheSeasonMinimum;
 
         // Transfers (raw money is pounds; format through the game)
         public List<TransferDeal> Arrivals = new(), Departures = new();
@@ -130,14 +136,14 @@ namespace SeasonReview
                 data.ClubLongName = Text(r.Get(SeasonSpec.Team + ".LongName"));
                 data.Division = Text(r.Get(SeasonSpec.Division + ".Name"));
                 data.Season = Text(r.Get(SeasonSpec.Division + ".SeasonName"));
-                data.LeaguePosition = Int(r.Get(SeasonSpec.Team + ".LeaguePosition"));
+                data.LeaguePosition = Positive(Int(r.Get(SeasonSpec.Team + ".LeaguePosition")));
                 data.LeaguePositionText = Text(r.Get(SeasonSpec.Team + ".LeaguePositionString"));
                 data.MediaPrediction = Int(r.Get(SeasonSpec.Team + ".MediaExpectedPosition"));
                 if (string.IsNullOrEmpty(data.Club)) throw new InvalidOperationException("club name missing");
             });
 
-            Section("league", () => BuildLeague(r, data));
             Section("matches", () => BuildMatches(r, data));
+            Section("league", () => BuildLeague(r, data, warn));
             Section("objectives", () => BuildObjectives(r, data));
             Section("players", () => BuildPlayers(r, data));
             Section("transfers", () => BuildTransfers(r, data));
@@ -153,19 +159,42 @@ namespace SeasonReview
             return data;
         }
 
-        private static void BuildLeague(GameRecord r, SeasonData data)
+        /// <summary>
+        /// League record from the league table; when the table has no usable row for the club
+        /// (as happened right after the season ended: the game had moved on to the next
+        /// season's table), the record is calculated from the club's league results instead.
+        /// </summary>
+        private static void BuildLeague(GameRecord r, SeasonData data, Action<string> warn)
         {
-            foreach (var stage in r.Items(SeasonSpec.Stages))
+            var leagueMatches = data.Matches.Where(m => m.League).ToList();
+
+            // Every row for the club in every table source; keep the one with the most matches.
+            GameRecord own = null;
+            int ownPlayed = -1, ownTableSize = 0;
+            foreach (var stage in TableStages(r))
             {
                 var rows = stage.Items(SeasonSpec.LeagueTable);
-                var own = rows.FirstOrDefault(row => Text(row.Get("Team.Name")) == data.Club);
-                if (own == null) continue;
-                data.LeagueSize = rows.Count;
-                data.LeaguePosition = Int(own.Get("TablePosition")) ?? data.LeaguePosition;
+                foreach (var row in rows)
+                {
+                    if (Text(row.Get("Team.Name")) != data.Club) continue;
+                    int played = Int(row.Get("LeagueGamesPlayed")) ?? 0;
+                    if (played <= ownPlayed) continue;
+                    own = row;
+                    ownPlayed = played;
+                    ownTableSize = rows.Count;
+                }
+            }
+
+            bool tableUsable = own != null && (ownPlayed > 0 || leagueMatches.Count == 0)
+                               && ownPlayed >= leagueMatches.Count;
+            if (tableUsable)
+            {
+                data.LeagueSize = ownTableSize;
+                data.LeaguePosition = Positive(Int(own.Get("TablePosition"))) ?? data.LeaguePosition;
                 data.PointsFromTable = Int(own.Get("LeaguePoints"));
                 data.Total = new LeagueRecord
                 {
-                    Played = Int(own.Get("LeagueGamesPlayed")) ?? 0,
+                    Played = ownPlayed,
                     Won = Int(own.Get("LeagueGamesWon")) ?? 0,
                     Drawn = Int(own.Get("LeagueGamesDrawn")) ?? 0,
                     Lost = Int(own.Get("LeagueGamesLost")) ?? 0,
@@ -174,8 +203,35 @@ namespace SeasonReview
                 };
                 return;
             }
-            throw new InvalidOperationException("club not found in the league table");
+
+            if (leagueMatches.Count == 0)
+                throw new InvalidOperationException("club not found in the league table and no league results");
+
+            warn(own == null
+                ? $"League table: no row for the club in {Describe(r)}; league record calculated from results"
+                : $"League table: the club's row shows {ownPlayed} matches but {leagueMatches.Count} were played ({Describe(r)}); league record calculated from results");
+            data.LeagueFromFixtures = true;
+            data.Total = Tally(leagueMatches);
+            data.PointsFromTable = null;
+            data.LeagueSize = leagueMatches.Select(m => m.Opponent).Distinct().Count() + 1;
         }
+
+        // Stages from both table sources: the division's current stages, and the stages of
+        // the season (read through the division object, one level deeper).
+        private static IEnumerable<GameRecord> TableStages(GameRecord r) =>
+            r.Items(SeasonSpec.Stages).Concat(Nested(r, SeasonSpec.AllStages, SeasonSpec.AllStages));
+
+        // Diagnostic: how many stages and rows each table source returned.
+        private static string Describe(GameRecord r)
+        {
+            string One(string name, List<GameRecord> stages) =>
+                name + ": " + stages.Count + " stages [" +
+                string.Join(", ", stages.Select(s => s.Items(SeasonSpec.LeagueTable).Count + " rows")) + "]";
+            return One("current stages", r.Items(SeasonSpec.Stages)) + "; "
+                   + One("season stages", Nested(r, SeasonSpec.AllStages, SeasonSpec.AllStages));
+        }
+
+        private static int? Positive(int? n) => n is > 0 ? n : null;
 
         private static void BuildMatches(GameRecord r, SeasonData data)
         {
@@ -308,21 +364,26 @@ namespace SeasonReview
                 });
             }
             if (data.Players.Count == 0) throw new InvalidOperationException("no players");
-            data.PlayerOfTheSeason = PickPlayerOfTheSeason(data.Players);
+            data.CompetitiveMatches = data.Matches.Count(m => !m.Friendly);
+            data.PlayerOfTheSeason = PickPlayerOfTheSeason(data.Players, data.CompetitiveMatches, out data.PlayerOfTheSeasonMinimum);
         }
 
         /// <summary>
-        /// Simple score from visible stats only: average rating, weighted by how much of the
-        /// season the player took part in. Needs at least a third of the most-used player's
-        /// appearances.
+        /// Player of the season: the highest average rating among players who appeared in at
+        /// least two thirds of the club's competitive matches; ties go to goals plus assists.
+        /// When the number of matches is unknown, the most-used player's appearances are the
+        /// reference instead.
         /// </summary>
-        public static PlayerSeason PickPlayerOfTheSeason(List<PlayerSeason> players)
+        public static PlayerSeason PickPlayerOfTheSeason(List<PlayerSeason> players, int clubMatches, out int minimum)
         {
-            int most = players.Count == 0 ? 0 : players.Max(p => p.Appearances);
-            if (most == 0) return null;
+            int reference = clubMatches > 0 ? clubMatches : (players.Count == 0 ? 0 : players.Max(p => p.Appearances));
+            minimum = (int)Math.Ceiling(reference * 2 / 3.0);
+            if (reference == 0) return null;
+            int min = minimum;
             return players
-                .Where(p => p.AverageRating > 0 && p.Appearances * 3 >= most)
-                .OrderByDescending(p => p.AverageRating * (0.75 + 0.25 * p.Appearances / most))
+                .Where(p => p.AverageRating > 0 && p.Appearances >= min)
+                .OrderByDescending(p => p.AverageRating)
+                .ThenByDescending(p => p.Goals + p.Assists)
                 .ThenByDescending(p => p.Appearances)
                 .FirstOrDefault();
         }
