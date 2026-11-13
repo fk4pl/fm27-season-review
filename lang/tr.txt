@@ -44,7 +44,7 @@ title = {club}: {season} Sezon Değerlendirmesi
 subtitle = {division} · rapor tarihi {date}
 interim = Ara rapor: lig sezonu henüz bitmedi ({remaining} kaldı).
 footer.generated = Season Review {version} tarafından {date} (oyun içi tarih) tarihinde oluşturuldu.
-footer.language = Yönetim ve taraftar görüşleri, hedefler ve turnuva adları oyundan alıntıdır ve oyunun dilindedir.
+footer.language = Yönetim ve taraftar görüşleri, hedefler, turnuva adları, sakatlık adları ve mali durum oyundan alıntıdır ve oyunun dilindedir; mali durumda yalnızca bilinen değerler Türkçeye çevrilir.
 footer.money = Tutarlar oyunda kullandığınız para biriminde gösterilir.
 footer.seealso = Sezon sonu ödülleri, sezonun en iyi 11'i ve aylık finans raporları oyunun kendisinde yer almaya devam ediyor.
 
@@ -100,8 +100,8 @@ players.scope = İstatistikler kulübün bu sezon oynadığı tüm turnuvaları 
 players.pots = Sezonun oyuncusu
 players.pots.text = {player}: {apps}, ortalama puan {rating}, {goals} ve {assists}.
 players.pots.how = Ortalama puana göre, maç sayısıyla ağırlıklandırılarak seçildi.
-players.scorers = Gol krallığı
-players.assists = Asist krallığı
+players.scorers = En çok gol atanlar
+players.assists = En çok asist yapanlar
 players.ratings = En yüksek ortalama puan (en çok oynayanın maç sayısının en az üçte biri)
 players.young = Genç oyuncular (21 yaş ve altı)
 players.name = Oyuncu
@@ -134,6 +134,18 @@ finances.projection = Sezon için öngörülen kâr/zarar (oyunun tahmini)
 finances.wages = Maaş gideri
 finances.wages.value = yıllık {amount}
 finances.status = Mali durum
+# Oyunun mali durum değerlerinin çevirileri (anahtar: değerin boşluksuz küçük harfli hâli).
+# Burada olmayan bir değer, oyunda göründüğü gibi yazılır.
+finances.status.value.rich = Çok zengin
+finances.status.value.verygood = Çok iyi
+finances.status.value.secure = Güvende
+finances.status.value.good = İyi
+finances.status.value.okay = Normal
+finances.status.value.insecure = Riskli
+finances.status.value.poor = Kötü
+finances.status.value.verypoor = Çok kötü
+finances.status.value.precarious = Tehlikeli
+finances.status.value.indebt = Borçlu
 finances.note = Oyunun sezon toplamları muhasebe rakamlarıdır (örneğin sponsorluk anlaşıldığında yazılır); bu yüzden gelir eksi gider, banka bakiyesindeki değişime eşit değildir.
 
 injuries.summary = Bu sezon {injuries}, toplam {days} kayıp.

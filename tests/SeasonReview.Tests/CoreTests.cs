@@ -127,6 +127,24 @@ namespace SeasonReview.Tests
         }
 
         [Fact]
+        public void MoneyUsesTheLanguagesDecimalSeparator()
+        {
+            Assert.Equal("€6,25M", TestData.Turkish().LocalizeDecimal("€6.25M"));
+            Assert.Equal("€6.25M", TestData.English().LocalizeDecimal("€6.25M"));
+            Assert.Equal("€149K", TestData.Turkish().LocalizeDecimal("€149K"));
+            Assert.Equal("$1,234.5", TestData.Turkish().LocalizeDecimal("$1,234.5")); // ambiguous: left alone
+        }
+
+        [Fact]
+        public void FinancialStatusIsTranslatedWhenKnown()
+        {
+            Assert.Equal("Normal", TestData.Turkish().GameValue("finances.status.value", "Okay"));
+            Assert.Equal("Çok iyi", TestData.Turkish().GameValue("finances.status.value", "Very Good"));
+            Assert.Equal("Something New", TestData.Turkish().GameValue("finances.status.value", "Something New"));
+            Assert.Equal("Okay", TestData.English().GameValue("finances.status.value", "Okay"));
+        }
+
+        [Fact]
         public void PluralFallsBackToOtherWhenNoSingularGiven()
         {
             var s = Strings.Parse("xx", "plural.match.other = {n} Spiele");
@@ -388,6 +406,9 @@ namespace SeasonReview.Tests
             Assert.Contains("Sezon Değerlendirmesi", md);
             Assert.Contains("2. sırada tamamladı ve 11 puan topladı", md);
             Assert.Contains("Bu sezon 1 sakatlık, toplam 21 gün kayıp.", md);
+            Assert.Contains("Mali durum: **Normal**", md);
+            Assert.Contains("£1,5M", md); // projection, decimal comma
+            Assert.Contains("En çok gol atanlar", md);
             Assert.Contains("7,4", md); // decimal comma
             Assert.DoesNotContain("[", md.Replace("\\[", "").Replace("\\]", ""));
         }

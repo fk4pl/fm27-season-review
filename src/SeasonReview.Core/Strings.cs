@@ -95,6 +95,33 @@ namespace SeasonReview
                 .Replace("{yyyy}", d.Year.ToString(CultureInfo.InvariantCulture));
         }
 
+        /// <summary>
+        /// Translation of a value the game gives in its own language (e.g. a financial status
+        /// such as "Okay"), looked up as "&lt;prefix&gt;.&lt;value in lower case, no spaces&gt;". A value
+        /// with no translation is returned unchanged.
+        /// </summary>
+        public string GameValue(string prefix, string value)
+        {
+            if (string.IsNullOrEmpty(value)) return value;
+            var key = prefix + "." + value.Replace(" ", "").ToLowerInvariant();
+            return Defines(key) ? Get(key) : value;
+        }
+
+        private static readonly System.Text.RegularExpressions.Regex DecimalPoint =
+            new System.Text.RegularExpressions.Regex(@"(?<=\d)\.(?=\d)");
+
+        /// <summary>
+        /// Uses this language's decimal separator in an amount formatted by the game (e.g.
+        /// "€6.25M" becomes "€6,25M" in Turkish). Text that already contains a comma is left
+        /// alone, because the comma could be a thousands separator.
+        /// </summary>
+        public string LocalizeDecimal(string text)
+        {
+            var separator = Get("format.decimal");
+            if (string.IsNullOrEmpty(text) || separator == "." || text.IndexOf(',') >= 0) return text;
+            return DecimalPoint.Replace(text, separator);
+        }
+
         /// <summary>A number with two decimals and the language's decimal separator.</summary>
         public string Decimal(double value) =>
             value.ToString("0.00", CultureInfo.InvariantCulture).Replace(".", Get("format.decimal"));

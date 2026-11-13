@@ -122,7 +122,7 @@ namespace SeasonReview
             var signing = _d.Arrivals.Where(t => !t.Loan && t.Fee > 0).OrderByDescending(t => t.Fee).FirstOrDefault();
             if (signing != null)
                 moments.Items.Add(_s.Format("summary.moment.signing", ("player", signing.Player),
-                    ("club", signing.OtherClub ?? "?"), ("fee", _money(signing.Fee))));
+                    ("club", signing.OtherClub ?? "?"), ("fee", Cash(signing.Fee))));
             var scorer = _d.Players.Where(p => p.Goals > 0).OrderByDescending(p => p.Goals).FirstOrDefault();
             if (scorer != null)
                 moments.Items.Add(_s.Format("summary.moment.scorer", ("player", scorer.Name), ("goals", _s.Count(scorer.Goals, "goal"))));
@@ -226,8 +226,9 @@ namespace SeasonReview
             if (_d.ProjectedProfit != null) facts.Items.Add((_s.Get("finances.projection"), PlusMinus(_d.ProjectedProfit)));
             facts.Items.Add((_s.Get("finances.wages"), _d.WeeklyWages == null
                 ? _s.Get("common.unavailable")
-                : _s.Format("finances.wages.value", ("amount", _money(_d.WeeklyWages.Value * 52)))));
-            if (_d.FinancialStatus != null) facts.Items.Add((_s.Get("finances.status"), _d.FinancialStatus));
+                : _s.Format("finances.wages.value", ("amount", Cash(_d.WeeklyWages.Value * 52)))));
+            if (_d.FinancialStatus != null)
+                facts.Items.Add((_s.Get("finances.status"), _s.GameValue("finances.status.value", _d.FinancialStatus)));
             section.Add(facts);
             section.Add(new Note { Text = _s.Get("finances.note") });
             return section;
@@ -342,7 +343,7 @@ namespace SeasonReview
                 table.Rows.Add(new[]
                 {
                     t.Player, t.OtherClub ?? "-",
-                    t.Loan ? _s.Get("common.loan") : t.Fee > 0 ? _money(t.Fee) : _s.Get("common.free"),
+                    t.Loan ? _s.Get("common.loan") : t.Fee > 0 ? Cash(t.Fee) : _s.Get("common.free"),
                     _s.Date(t.Date),
                 });
             section.Add(table);
@@ -367,12 +368,15 @@ namespace SeasonReview
 
         private string Signed(double? value) =>
             value == null ? _s.Get("common.unavailable")
-            : value < 0 ? "-" + _money(-value.Value)
-            : _money(value.Value);
+            : value < 0 ? "-" + Cash(-value.Value)
+            : Cash(value.Value);
 
         /// <summary>Profit/loss style: always signed ("+€1.2M", "-€3.4M").</summary>
         private string PlusMinus(double? value) =>
-            value == null ? _s.Get("common.unavailable") : value < 0 ? "-" + _money(-value.Value) : "+" + _money(value.Value);
+            value == null ? _s.Get("common.unavailable") : value < 0 ? "-" + Cash(-value.Value) : "+" + Cash(value.Value);
+
+        /// <summary>An amount from the game's formatter, with this language's decimal separator.</summary>
+        private string Cash(double pounds) => _s.LocalizeDecimal(_money(pounds));
 
         private static string N(int value) => value.ToString(CultureInfo.InvariantCulture);
     }
