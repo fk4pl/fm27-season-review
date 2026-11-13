@@ -19,6 +19,7 @@ namespace SeasonReview
         internal static ConfigEntry<string> HotkeyText;
         internal static ConfigEntry<string> OutputFolder;
         internal static ConfigEntry<bool> ProbeDump;
+        internal static ConfigEntry<bool> ProbeHotkey;
 
         public override void Load()
         {
@@ -32,6 +33,9 @@ namespace SeasonReview
                 "Where reports are saved. Empty = Documents/Sports Interactive/Football Manager 27/SeasonReviews.");
             ProbeDump = Config.Bind("Developer", "ProbeDump", false,
                 "On hotkey, also write discovery dumps (names only, no hidden values) to BepInEx/SeasonReview/.");
+
+            ProbeHotkey = Config.Bind("Developer", "ProbeHotkey", true,
+                "Shift+<Hotkey> writes discovery dumps of the current screen to BepInEx/SeasonReview/.");
 
             if (!Enabled.Value)
             {
@@ -48,7 +52,7 @@ namespace SeasonReview
     public class SeasonReviewBehaviour : MonoBehaviour
     {
         private readonly GameReader _reader = new GameReader();
-        private Hotkey _hotkey;
+        private Hotkey _hotkey, _probeHotkey;
         private string _parsedFrom;
 
         public SeasonReviewBehaviour(IntPtr ptr) : base(ptr) { }
@@ -67,9 +71,19 @@ namespace SeasonReview
                         Hotkey.TryParse("Ctrl+F8", out _hotkey);
                     }
                     Plugin.L.LogInfo($"Hotkey: {_hotkey}");
+                    // Developer probe: the same shortcut with Shift held.
+                    _probeHotkey = null;
+                    if (Plugin.ProbeHotkey.Value && !_hotkey.Shift && Hotkey.TryParse("Shift+" + _hotkey, out var probe))
+                        _probeHotkey = probe;
                 }
 
                 _reader.Tick();
+
+                if (_probeHotkey != null && _probeHotkey.PressedThisFrame())
+                {
+                    Probe.Run(true);
+                    return;
+                }
 
                 if (_hotkey.PressedThisFrame())
                 {

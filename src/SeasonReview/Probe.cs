@@ -27,7 +27,12 @@ namespace SeasonReview
         private const int MaxNodes = 400_000;
         private const int MaxDepth = 48;
 
-        public static Bindings Run()
+        private static int _dumpIndex;
+
+        /// <summary>Returns the binding tree, or null (with a warning) when no game is loaded.</summary>
+        public static Bindings Run() => Run(false);
+
+        public static Bindings Run(bool dump)
         {
             Plugin.L.LogInfo("---- Season Review: hotkey pressed ----");
 
@@ -45,12 +50,12 @@ namespace SeasonReview
                 return null;
             }
 
-            if (!Plugin.ProbeDump.Value) return bindings;
+            if (!dump && !Plugin.ProbeDump.Value) return bindings;
 
             var dir = Path.Combine(BepInEx.Paths.BepInExRootPath, "SeasonReview");
             Directory.CreateDirectory(dir);
 
-            try { WalkTree(bindings, Path.Combine(dir, "probe-tree.txt")); }
+            try { WalkTree(bindings, Path.Combine(dir, $"probe-tree-{++_dumpIndex}.txt")); }
             catch (Exception e) { Plugin.L.LogWarning($"Binding tree walk failed: {e}"); }
 
             try { DumpProperties(Path.Combine(dir, "probe-properties.txt")); }
@@ -97,7 +102,10 @@ namespace SeasonReview
                 bool isDate = DateNames.Contains(lower);
                 bool isClub = ClubNames.Contains(lower);
                 bool isLabelUnderClub = LabelNames.Contains(lower) && ClubNames.Any(n => ContainsSegment(parentPath, n));
-                if (value != null && (isDate || isClub || isLabelUnderClub))
+                // Binding variables and contexts are written in lower case by the game's UI files
+                // (property names are PascalCase); their values tell us which contexts lists need.
+                bool isVariable = name.Length > 1 && name == lower && char.IsLetter(name[0]) && type != "ReferenceTypedValue";
+                if (value != null && (isDate || isClub || isLabelUnderClub || isVariable))
                 {
                     shown = Safe(() => value.AsString());
                     if (!string.IsNullOrEmpty(shown))
@@ -160,6 +168,8 @@ namespace SeasonReview
                 var method = type.GetMethod("GetPropertiesInternal", BindingFlags.Public | BindingFlags.Static | BindingFlags.DeclaredOnly);
                 if (method == null) continue;
 
+                var kindMethod = type.GetMethod("GetPropertyTypeInternal", BindingFlags.Public | BindingFlags.Static | BindingFlags.DeclaredOnly);
+                var contextMethod = type.GetMethod("GetContextsInternal", BindingFlags.Public | BindingFlags.Static | BindingFlags.DeclaredOnly);
                 var names = new List<string>();
                 try
                 {
@@ -171,7 +181,8 @@ namespace SeasonReview
                         string name = null;
                         if (identifiers != null) name = Safe(() => identifiers.GetInfo(id)?.Name);
                         name ??= "#" + id;
-                        if (!HiddenValues.IsHidden(name)) names.Add(name);
+                        if (HiddenValues.IsHidden(name)) continue;
+                        names.Add(name + Describe(kindMethod, contextMethod, id));
                     }
                 }
                 catch (Exception) { failed++; continue; }
@@ -185,6 +196,42 @@ namespace SeasonReview
             }
 
             Plugin.L.LogInfo($"Property dump: {typeCount} reference types, {propertyCount} properties, {failed} failed -> {path}");
+        }
+
+        // "  [Kind, list] ctx: a, b" for one property; empty when the game gives no details.
+        private static string Describe(MethodInfo kindMethod, MethodInfo contextMethod, uint id)
+        {
+            var text = new StringBuilder();
+            try
+            {
+                if (kindMethod?.Invoke(null, new object[] { id }) is BindingKind kind)
+                {
+                    text.Append("  [").Append(kind.Kind.ToString());
+                    if (kind.IsList) text.Append(", list");
+                    var valueType = Safe(() => kind.Type?.Name);
+                    if (!string.IsNullOrEmpty(valueType)) text.Append(", ").Append(valueType);
+                    text.Append(']');
+                }
+            }
+            catch (Exception) { }
+            try
+            {
+                var contexts = new Il2CppList.List<ContextID>();
+                contextMethod?.Invoke(null, new object[] { id, contexts });
+                if (contexts.Count > 0)
+                {
+                    var names = new List<string>();
+                    for (int i = 0; i < contexts.Count; i++)
+                    {
+                        var context = contexts[i];
+                        uint contextId = context.id;
+                        names.Add(Safe(() => context.GetIdentifierSet().GetInfo(contextId)?.Name) ?? ("#" + contextId));
+                    }
+                    text.Append("  ctx: ").Append(string.Join(", ", names));
+                }
+            }
+            catch (Exception) { }
+            return text.ToString();
         }
 
         private static T Safe<T>(Func<T> read)

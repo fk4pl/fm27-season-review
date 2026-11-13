@@ -161,6 +161,7 @@ namespace SeasonReview
             if (text == null) return;
             r.Record.Values[r.Path] = text;
             if (text.Length == 0) return; // may be a placeholder; keep waiting for a real value
+            Flatten(r.Record, r.Path, value);
             _open.Remove(r);
             _answered++;
             _idle = 0;
@@ -208,6 +209,8 @@ namespace SeasonReview
 
                     var record = new Record();
                     records.Add(record);
+                    if (wrapped != null) record.Values["."] = wrapped.AsString();
+                    Flatten(record, "", wrapped);
                     _scopes.Enqueue(new Scope { Root = key, Spec = r.List.Item, Record = record });
                 }
                 catch (Exception e)
@@ -217,6 +220,33 @@ namespace SeasonReview
                 }
             }
             r.Record.ListNotes[r.Path] = $"type {typeName}; {records.Count} items of {itemType}";
+        }
+
+        /// <summary>
+        /// Some values are small records (property id -> value) delivered in one piece. Their
+        /// fields are copied into the record as "path.FieldName"; hidden values are skipped.
+        /// </summary>
+        private static void Flatten(Record record, string path, TypedValue value)
+        {
+            try
+            {
+                var dynamic = value?.Get()?.TryCast<DynamicReference>();
+                if (dynamic == null) return;
+                var dictionary = dynamic.Cast<Il2CppSystem.Collections.Generic.Dictionary<uint, TypedValue>>();
+                int count = dictionary.Count;
+                if (count == 0 || count > 200) return;
+                var keys = new Il2CppInterop.Runtime.InteropTypes.Arrays.Il2CppStructArray<uint>(count);
+                dictionary.Keys.CopyTo(keys, 0);
+                var identifiers = Bindings.Node.s_propertyIdentifierSet;
+                foreach (uint id in keys)
+                {
+                    string name = identifiers?.GetInfo(id)?.Name ?? ("#" + id);
+                    if (HiddenValues.IsHidden(name)) continue;
+                    if (!dictionary.TryGetValue(id, out var field) || field == null) continue;
+                    record.Values[path.Length == 0 ? name : path + "." + name] = field.AsString();
+                }
+            }
+            catch (Exception) { /* not a record, or not readable: keep the plain value */ }
         }
 
         private static List<Il2CppSystem.Object> Enumerate(Il2CppSystem.Object obj, int max)
