@@ -159,6 +159,8 @@ namespace SeasonReview.Tests
         [InlineData("A sports hernia", "Spor fıtığı")]
         [InlineData("A twisted ankle", "Burkulmuş ayak bileği")]
         [InlineData("a TIGHT  hamstring", "Arka adalede gerginlik")]
+        [InlineData("A moderate calf strain", "Orta derecede baldır zorlanması")] // seen in game
+        [InlineData("A hip injury", "Kalça sakatlığı")]                          // seen in game
         [InlineData("A mysterious ailment", "A mysterious ailment")]
         public void TurkishInjuries(string game, string expected) =>
             Assert.Equal(expected, TestData.Turkish().GameText("injury", game));

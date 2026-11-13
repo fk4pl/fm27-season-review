@@ -309,3 +309,29 @@ Not available:
   a `StringType` context of unknown value. Cup lines show the last match without the round.
 - **Matches missed through injury**: no season total; the report gives injuries and days lost.
 - `Team.LeaguePosition` can lag behind the table; the table row's `TablePosition` is used.
+
+## 10. Stage 3 findings (running game, 27.0.1, 23 May 2027 save)
+
+- **Season-end trigger** verified: the daily check saw "31 played, 3 remaining" … "all league
+  fixtures played" and wrote the report once, on 23 May 2027.
+- **League table after the season ends**: `Division.CurrentStages` returns **no stages** once the
+  league is over. The finished season's table comes from `Division.AllStages` read with the
+  contexts `Year=<season start year>` and `NextSeason=false` beside the division. Its items are
+  tree rows (`SI.Bindable.DynamicReference`): the stage is `RowData.Stage`
+  (`CompetitionStageReference`, its table needs `LeagueTableType=0`), sub-stages are rows in
+  `ChildList`. Verified: the club's row is found there. If no table row is usable, the league
+  record is calculated from the fixtures and the report says so.
+- **Media prediction**: `Team.MediaExpectedPosition` is **not** the pre-season prediction (it
+  showed the final position, 6, at season end). The League Table > Media Prediction screen's data
+  is `Division.OddsLeagueTableList`: rows with `Team`, `MediaExpectedPosition`, `TablePosition`.
+  Verified: 3 for Beşiktaş, as shown in game.
+- **Loans**: `Team.Players` includes players out on loan, and `Club…ThisSeason` statistics count
+  all club matches regardless of club (a player loaned out on 29 June showed 37 matches at the
+  loan club). Loaned-out players are recognised from this season's departures (`IsOnLoan`) and
+  kept out of the club's statistics; players who joined after the first competitive match are
+  flagged.
+- **Re-simulation**: reloading a save made before the last match and playing on can change
+  results (e.g. a player's goals 22 → 21); the report reflects the save that was played.
+- Injury names seen: "A sports hernia", "A twisted ankle", "A tight hamstring", "A bruised
+  ankle", "A cut leg", "A tight groin", "A tight thigh", "A double hernia", "A hip injury",
+  "A moderate calf strain", "A twisted knee".
