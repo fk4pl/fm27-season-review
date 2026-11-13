@@ -34,11 +34,12 @@ namespace SeasonReview
             t.AppendLine($"- Division: {d.Division ?? Unavailable}");
             t.AppendLine($"- League position: {d.LeaguePositionText ?? d.LeaguePosition?.ToString() ?? Unavailable}" +
                          (d.LeagueSize != null ? $" of {d.LeagueSize}" : ""));
-            if (d.MediaPrediction != null) t.AppendLine($"- Media prediction: {d.MediaPrediction}");
+            if (d.MediaPrediction != null) t.AppendLine($"- Media prediction: {Ordinal(d.MediaPrediction.Value)}");
             foreach (var o in d.Objectives)
                 t.AppendLine($"- Board expectation: {o.Name}" + (o.BoardView != null ? $" - {o.BoardView}" : ""));
             foreach (var c in d.Cups)
-                t.AppendLine($"- {c.Competition}: P{c.Played} W{c.Won} D{c.Drawn} L{c.Lost}, last match {c.LastStage} ({c.LastResult})");
+                t.AppendLine($"- {c.Competition}: P{c.Played} W{c.Won} D{c.Drawn} L{c.Lost}, last match: " +
+                             (c.LastStage != null ? c.LastStage + ", " : "") + c.LastResult);
             t.AppendLine();
 
             t.AppendLine("## League performance").AppendLine();
@@ -56,13 +57,13 @@ namespace SeasonReview
             t.AppendLine("## Players").AppendLine();
             if (!Missing("players"))
             {
+                t.AppendLine("Player statistics cover all competitions for the club this season.").AppendLine();
                 if (d.PlayerOfTheSeason != null)
                     t.AppendLine($"Player of the season: **{d.PlayerOfTheSeason.Name}** ({d.PlayerOfTheSeason.Appearances} apps, average rating {Rating(d.PlayerOfTheSeason)})").AppendLine();
                 Players(t, "Top scorers", d.Players.Where(p => p.Goals > 0).OrderByDescending(p => p.Goals).ThenBy(p => p.Appearances).Take(5));
                 Players(t, "Most assists", d.Players.Where(p => p.Assists > 0).OrderByDescending(p => p.Assists).ThenBy(p => p.Appearances).Take(5));
-                Players(t, "Most appearances", d.Players.Where(p => p.Appearances > 0).OrderByDescending(p => p.Appearances).ThenByDescending(p => p.Minutes).Take(5));
                 Players(t, "Best average rating", d.Players.Where(p => p.AverageRating > 0).OrderByDescending(p => p.AverageRating).Take(5));
-                Players(t, "Young players (21 and under)", d.Players.Where(p => p.Age > 0 && p.Age <= 21).OrderByDescending(p => p.Minutes));
+                Players(t, "Young players (21 and under)", d.Players.Where(p => p.Age > 0 && p.Age <= 21 && p.Appearances > 0).OrderByDescending(p => p.Minutes));
             }
 
             t.AppendLine("## Transfers").AppendLine();
@@ -76,11 +77,11 @@ namespace SeasonReview
             t.AppendLine("## Finances").AppendLine();
             if (!Missing("finances"))
             {
-                t.AppendLine($"- Balance at start ({Day(d.BalanceStartDate)}): {Money(d.BalanceStart)}");
+                t.AppendLine("- Balance at season start" + (d.BalanceStartDate != null ? $" ({Day(d.BalanceStartDate)})" : "") + $": {Money(d.BalanceStart)}");
                 t.AppendLine($"- Balance now: {Money(d.BalanceEnd)}");
-                t.AppendLine($"- Income this season: {Money(d.Income)}; expenditure: {Money(d.Expenditure)}; profit/loss: " +
-                             Money(d.Income != null && d.Expenditure != null ? d.Income - d.Expenditure : null));
-                t.AppendLine($"- Wage bill: {d.WageText ?? Money(d.WeeklyWages * 52) + " p/a"}");
+                t.AppendLine("- Profit/loss for the season (change in balance): " +
+                             Signed(d.BalanceStart != null && d.BalanceEnd != null ? d.BalanceEnd - d.BalanceStart : null, money));
+                t.AppendLine("- Wage bill: " + (d.WeeklyWages != null ? money(d.WeeklyWages.Value * 52) + " per year" : Unavailable));
                 if (d.FinancialStatus != null) t.AppendLine($"- Financial status: {d.FinancialStatus}");
                 t.AppendLine();
             }
@@ -135,6 +136,16 @@ namespace SeasonReview
             foreach (var line in c.Highlights) t.AppendLine("- (+) " + line);
             foreach (var line in c.Criticism) t.AppendLine("- (-) " + line);
             t.AppendLine();
+        }
+
+        private static string Signed(double? value, Func<double, string> money) =>
+            value == null ? Unavailable : value < 0 ? "-" + money(-value.Value) : "+" + money(value.Value);
+
+        private static string Ordinal(int n)
+        {
+            int tens = n % 100, ones = n % 10;
+            string suffix = tens >= 11 && tens <= 13 ? "th" : ones == 1 ? "st" : ones == 2 ? "nd" : ones == 3 ? "rd" : "th";
+            return n + suffix;
         }
 
         private static string Rating(PlayerSeason p) =>

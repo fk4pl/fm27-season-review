@@ -87,9 +87,9 @@ namespace SeasonReview
         public double? FeesPaid, FeesReceived, NetSpend;
 
         // Finances
-        public double? BalanceStart, BalanceEnd, Income, Expenditure, WeeklyWages, WeeklyWageBudget;
+        public double? BalanceStart, BalanceEnd, WeeklyWages, WeeklyWageBudget;
         public DateTime? BalanceStartDate;
-        public string FinancialStatus, WageText;
+        public string FinancialStatus;
 
         // Injuries
         public List<InjuryRecord> Injuries = new();
@@ -198,7 +198,7 @@ namespace SeasonReview
                 {
                     Date = Date(f.Get("FixtureDate")),
                     Competition = competition,
-                    Stage = Text(f.Get("StageName")),
+                    Stage = Text(f.Get("StageName.Name")),
                     Opponent = isHome ? away : home,
                     Home = isHome,
                     League = league,
@@ -228,7 +228,7 @@ namespace SeasonReview
                     Drawn = group.Count(m => m.Outcome == 'D'),
                     Lost = group.Count(m => m.Outcome == 'L'),
                     LastStage = last.Stage,
-                    LastResult = $"{(last.Home ? "H" : "A")} {last.Opponent} {last.GoalsFor}-{last.GoalsAgainst}",
+                    LastResult = $"{last.Opponent} ({(last.Home ? "H" : "A")}) {last.GoalsFor}-{last.GoalsAgainst}",
                 });
             }
         }
@@ -342,19 +342,27 @@ namespace SeasonReview
         private static void BuildFinances(GameRecord r, SeasonData data)
         {
             data.BalanceEnd = Number(r.Get(SeasonSpec.Club + ".OverallBalance"));
-            data.Income = Number(r.Get(SeasonSpec.Club + ".TotalIncomeThisSeason"));
-            data.Expenditure = Number(r.Get(SeasonSpec.Club + ".TotalExpenditureThisSeason"));
             data.WeeklyWages = Number(r.Get(SeasonSpec.Club + ".CurrentWageSpending"));
             data.WeeklyWageBudget = Number(r.Get(SeasonSpec.Club + ".WageBudget"));
-            data.WageText = Text(r.Get(SeasonSpec.Club + ".CurrentWageSpendingWithText"));
             data.FinancialStatus = Text(r.Get(SeasonSpec.Club + ".FinancialStatus.DisplayValue"));
 
-            // Balance history: dated points; the first one is the oldest the game keeps.
-            var first = r.Items(SeasonSpec.BalanceHistory).FirstOrDefault();
-            if (first != null)
+            // Balance history: one point per month. The season starts on 1 July for seasons
+            // named "2026/27" and on 1 January for calendar-year seasons named "2026".
+            var start = SeasonStart(data.Season);
+            if (start != null)
             {
-                data.BalanceStart = Number(first.Get("GraphPointY"));
-                data.BalanceStartDate = Date(first.Get("GraphPointX"));
+                double bestDistance = 20; // days; no usable point = "data unavailable"
+                foreach (var point in r.Items(SeasonSpec.BalanceHistory))
+                {
+                    var date = Date(point.Get("GraphPointX"));
+                    var value = Number(point.Get("GraphPointY"));
+                    if (date == null || value == null) continue;
+                    double distance = Math.Abs((date.Value - start.Value).TotalDays);
+                    if (distance > bestDistance) continue;
+                    bestDistance = distance;
+                    data.BalanceStart = value;
+                    data.BalanceStartDate = date;
+                }
             }
             if (data.BalanceEnd == null) throw new InvalidOperationException("balance missing");
         }
@@ -402,13 +410,24 @@ namespace SeasonReview
             return result;
         }
 
+        /// <summary>First day of the season: 1 July of the first year for "2026/27", 1 January for "2026".</summary>
+        public static DateTime? SeasonStart(string seasonName)
+        {
+            if (seasonName == null || seasonName.Length < 4 || !int.TryParse(seasonName.Substring(0, 4), out var year)) return null;
+            return seasonName.Length > 4 ? new DateTime(year, 7, 1) : new DateTime(year, 1, 1);
+        }
+
         // ── Value parsing ──────────────────────────────────────────────────
 
         public static string Text(string raw)
         {
             if (raw == null) return null;
-            var text = GameText.StripLink(raw).Trim();
-            return text.Length == 0 ? null : text;
+            var text = string.Join(" ", GameText.StripLink(raw).Split((char[])null, StringSplitOptions.RemoveEmptyEntries));
+            if (text.Length == 0) return null;
+            // An unresolved object prints as its class name; never let that into the report.
+            if (text.StartsWith("FM.", StringComparison.Ordinal) || text.StartsWith("SI.", StringComparison.Ordinal)
+                || text.StartsWith("System.", StringComparison.Ordinal)) return null;
+            return text;
         }
 
         public static double? Number(string raw) =>

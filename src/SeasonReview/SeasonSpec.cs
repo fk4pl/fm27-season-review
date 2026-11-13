@@ -58,7 +58,7 @@ namespace SeasonReview
 
             // Fixture list of the whole season: the game's screen passes these context values.
             var fixture = new Spec().Value(
-                "FixtureDate", "Competition.Name", "Competition.IsFriendly", "StageName",
+                "FixtureDate", "Competition.Name", "Competition.IsFriendly", "StageName.Name",
                 "HomeTeam.Name", "AwayTeam.Name", "HomeScore", "AwayScore", "HasResult", "Result",
                 "HomeTeamWon", "AwayTeamWon");
             spec.Object(Team, new Spec()
@@ -96,6 +96,11 @@ namespace SeasonReview
                 spec.List(Confidence + "." + who + "FeedbackHighlights", asDelivered, 12, who + "Highlights");
                 spec.List(Confidence + "." + who + "FeedbackCriticism", asDelivered, 12, who + "Criticism");
             }
+            // Research only (raw dump): what the season income/expenditure totals are made of.
+            var breakdownRow = new Spec().Value("Name", "DisplayValue", "PropertyValue");
+            spec.List(Club + ".IncomeBreakdownThisSeason", breakdownRow, 40, "IncomeBreakdown");
+            spec.List(Club + ".ExpenditureBreakdownThisSeason", breakdownRow, 40, "ExpenditureBreakdown");
+
             spec.List(InjurySummary + ".PastInjuries", new Spec().Value("Player.Name"), 120, PastInjuries);
 
             return spec;
