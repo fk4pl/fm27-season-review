@@ -58,13 +58,12 @@ namespace SeasonReview
 
             // Fixture list of the whole season: the game's screen passes these context values.
             var fixture = new Spec().Value(
-                "FixtureDate", "Competition.Name", "Competition.IsFriendly", "StageName.Name",
+                "FixtureDate", "Competition.Name", "Competition.IsFriendly",
                 "HomeTeam.Name", "AwayTeam.Name", "HomeScore", "AwayScore", "HasResult", "Result",
                 "HomeTeamWon", "AwayTeamWon");
             spec.Object(Team, new Spec()
                 .Context("PreviousAmount", -1).Context("FutureAmount", -1)
                 .Context("FixturePadding", false).Context("YearIndex", 0)
-                .Context("StringType", 0) // for the stage name; value still being explored
                 .List("FixtureList", fixture, 90, Fixtures), Fixtures);
 
             var tableRow = new Spec().Value(

@@ -99,7 +99,8 @@ namespace SeasonReview
             }
 
             bool finished = _open.Count == 0 && _scopes.Count == 0;
-            if (finished || _idle > IdleFrames || _frames > MaxFrames) Finish(finished);
+            if (finished || _idle > IdleFrames) Finish(false);
+            else if (_frames > MaxFrames) Finish(true);
         }
 
         private void OpenScope(Scope scope)
@@ -291,10 +292,14 @@ namespace SeasonReview
             return result;
         }
 
-        private void Finish(bool complete)
+        private void Finish(bool timedOut)
         {
-            if (!complete)
-                Plugin.L.LogWarning($"Game data read stopped early ({Progress}); {_open.Count} values unanswered.");
+            // Some values legitimately never answer (e.g. the competition of an objective that
+            // has none), so unanswered values are only worth a warning on a hard timeout.
+            if (timedOut)
+                Plugin.L.LogWarning($"Game data read timed out ({Progress}); {_open.Count} values unanswered.");
+            else
+                Plugin.L.LogInfo($"Game data read finished: {Progress}, {_open.Count} without an answer.");
 
             foreach (var r in _bound)
             {

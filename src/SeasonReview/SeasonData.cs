@@ -201,7 +201,6 @@ namespace SeasonReview
                 {
                     Date = Date(f.Get("FixtureDate")),
                     Competition = competition,
-                    Stage = Text(f.Get("StageName.Name")),
                     Opponent = isHome ? away : home,
                     Home = isHome,
                     League = league,

@@ -266,7 +266,8 @@ property (`GetContextsInternal`), e.g.:
 
 In the game's screens a context is a node with that name next to (or above) the node holding the
 object. The mod does the same inside its private container:
-`SeasonReviewMod.<n>.<ContextName>` beside `SeasonReviewMod.<n>.src`. Results pending.
+`SeasonReviewMod.<n>.<ContextName>` beside `SeasonReviewMod.<n>.src`. **Verified working** for all rows
+below marked ✔.
 
 ### Money
 
@@ -287,3 +288,24 @@ object. The mod does the same inside its private container:
 - `ClubSeasonExpectationsCompetitionList` gives the competitions and an importance number, but
   not the expectation wording; the vision objective list is the candidate for that.
 - `ClubAverageRatingThisSeason` is a float (round to 2 decimals).
+
+### Verified data sources (compared with the game's screens by the user, 31 Aug 2026 save)
+
+| Report item | Source | Context values | Status |
+|---|---|---|---|
+| Fixtures and results | `Team.FixtureList` → `FixtureReference`: `FixtureDate`, `Competition.Name`, `Competition.IsFriendly`, `HomeTeam.Name`, `AwayTeam.Name`, `HomeScore`, `AwayScore`, `HasResult`, `Result` | `PreviousAmount=-1`, `FutureAmount=-1`, `FixturePadding=false`, `YearIndex=0` | ✔ 54 fixtures |
+| League table | `Division.CurrentStages[]` → `LeagueTable` rows (records): `Team.Name`, `TablePosition`, `LeagueGames*`, `LeagueGoals*`, `LeaguePoints` | `LeagueTableType=0` | ✔ matches the game |
+| Transfers | `Division.SeasonTransferInfo.SeasonTransfersInPlayers/OutPlayers` (records): `Player.Name`, `BuyingTeam.Name`, `SellingTeam.Name`, `Fee`, `IsOnLoan`, `Date` | `team`=the team, `Year`=season start year, `TransferType=0` | ✔ matches the game |
+| Board expectations | `Club.VisionObjectiveList` (records): `VisionObjectiveName`, `VisionObjectiveCategory` (1 = competition target), `VisionObjectivePerformance` (the board's wording), `VisionObjectiveYearString`, `Competition.Name` | `VisionObjectiveSetter=1`, `VisionObjectiveType=0`, `VisionObjectiveYear=0`, `ViewID=0`, `VisionIsUsingPerformanceData=true` | ✔ |
+| Balance at season start | `Club.FinanceBalanceHistory` (records `GraphPointX` date, `GraphPointY` value), one point per month; use the point nearest the season start (1 July for "2026/27", 1 January for "2026") | none | ✔ |
+| Income / expenditure | `Club.TotalIncomeThisSeason`, `Club.TotalExpenditureThisSeason` | none | ✔ equal to the finance screen's "This Season" totals. These are accounting totals, not cash (sponsorship is booked up front; June transfers fall before the season), so income − expenditure ≠ change in balance. The report shows both, separately labelled. Breakdown lists: `IncomeBreakdownThisSeason`, `ExpenditureBreakdownThisSeason` (`Name`, `DisplayValue`, `PropertyValue`) |
+| Projected profit/loss | `Club.ProjectionProfitLoss.ProjectionEndOfSeasonOne.PropertyValue` (nested records) | none | ✔ equals Finances > Projections |
+| Player minutes | `Person.Minutes.PropertyValue` | none | ✔ |
+| Injuries | `Team.SeasonInjurySummaryData.PastInjuries` (records): `Player.Name`, `InjuryDescription`, `InjuryDate`, `InjuryDurationDays`, `IsActive`; counts `Major/Moderate/Minor/SlightInjuryCount` | none | ✔ |
+
+Not available:
+
+- **Cup round names**: `FixtureReference.StageName` is a `FixtureNameReference` whose `Name` needs
+  a `StringType` context of unknown value. Cup lines show the last match without the round.
+- **Matches missed through injury**: no season total; the report gives injuries and days lost.
+- `Team.LeaguePosition` can lag behind the table; the table row's `TablePosition` is used.
