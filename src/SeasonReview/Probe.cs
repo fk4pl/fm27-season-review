@@ -27,7 +27,7 @@ namespace SeasonReview
         private const int MaxNodes = 400_000;
         private const int MaxDepth = 48;
 
-        public static void Run()
+        public static Bindings Run()
         {
             Plugin.L.LogInfo("---- Season Review: hotkey pressed ----");
 
@@ -41,19 +41,20 @@ namespace SeasonReview
             if (bindings == null)
             {
                 Plugin.L.LogWarning("Game data unavailable: binding subsystem not found (is a save loaded?).");
-                return;
+                return null;
             }
 
-            var dir = Path.Combine(Paths.BepInExRootPathSafe(), "SeasonReview");
-            var dump = Plugin.ProbeDump.Value;
-            if (dump) Directory.CreateDirectory(dir);
+            if (!Plugin.ProbeDump.Value) return bindings;
 
-            try { WalkTree(bindings, dump ? Path.Combine(dir, "probe-tree.txt") : null); }
+            var dir = Path.Combine(BepInEx.Paths.BepInExRootPath, "SeasonReview");
+            Directory.CreateDirectory(dir);
+
+            try { WalkTree(bindings, Path.Combine(dir, "probe-tree.txt")); }
             catch (Exception e) { Plugin.L.LogWarning($"Binding tree walk failed: {e}"); }
 
-            if (!dump) return;
             try { DumpProperties(Path.Combine(dir, "probe-properties.txt")); }
             catch (Exception e) { Plugin.L.LogWarning($"Property dump failed: {e}"); }
+            return bindings;
         }
 
         // ── Binding tree ───────────────────────────────────────────────────
@@ -132,12 +133,6 @@ namespace SeasonReview
             Plugin.L.LogInfo($"Binding tree: {nodes} nodes visited{(truncated ? " (truncated)" : "")}, {skippedHidden} hidden subtrees skipped.");
             Plugin.L.LogInfo("Value types: " + string.Join(", ", typeCounts.OrderByDescending(p => p.Value).Take(12).Select(p => $"{p.Key}×{p.Value}")));
 
-            if (dates.Count == 0) Plugin.L.LogWarning("In-game date: data unavailable (no date node in the binding tree).");
-            else foreach (var d in dates) Plugin.L.LogInfo("In-game date: " + d);
-
-            if (clubs.Count == 0) Plugin.L.LogWarning("Club: data unavailable (no human team node in the binding tree).");
-            else foreach (var c in clubs) Plugin.L.LogInfo("Club: " + c);
-
             if (path != null) Plugin.L.LogInfo("Tree dump written to " + path);
         }
 
@@ -196,10 +191,5 @@ namespace SeasonReview
             try { return read(); }
             catch (Exception) { return default; }
         }
-    }
-
-    internal static class Paths
-    {
-        public static string BepInExRootPathSafe() => BepInEx.Paths.BepInExRootPath;
     }
 }

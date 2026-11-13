@@ -44,6 +44,24 @@ namespace SeasonReview
     /// <summary>Polls the hotkey once per frame on Unity's main thread.</summary>
     public class SeasonReviewBehaviour : MonoBehaviour
     {
+        // Stage 1: the current date and the manager's club, plus a few values that prove deeper
+        // property chains can be read without the matching screen being open.
+        private const string Team = "GameCurrentManagerClubTeam";
+        private static readonly string[] HelloPaths =
+        {
+            "CurrentGameDateString",
+            "CurrentGameDate",
+            Team + ".Name",
+            Team + ".Club.Name",
+            Team + ".Division.Name",
+            Team + ".LeaguePositionString",
+            Team + ".TeamConfidence.BoardConfidenceOverallString",
+            Team + ".TeamConfidence.SupporterConfidenceOverallString",
+            Team + ".Club.OverallBalance",
+            Team + ".Club.TotalIncomeThisSeason",
+        };
+
+        private readonly GameReader _reader = new GameReader();
         private Hotkey _hotkey;
         private string _parsedFrom;
 
@@ -65,14 +83,30 @@ namespace SeasonReview
                     Plugin.L.LogInfo($"Hotkey: {_hotkey}");
                 }
 
+                _reader.Tick();
+
                 if (_hotkey.PressedThisFrame())
-                    Probe.Run();
+                {
+                    if (_reader.Busy) { Plugin.L.LogInfo("Still reading game data, please wait."); return; }
+                    var bindings = Probe.Run();
+                    if (bindings != null) _reader.Start(bindings, this, HelloPaths, LogHello);
+                }
             }
             catch (Exception e)
             {
                 // Never let an exception escape into the game's update loop.
                 Plugin.L.LogWarning($"Hotkey handling failed: {e.Message}");
             }
+        }
+
+        private static void LogHello(System.Collections.Generic.IReadOnlyDictionary<string, string> values)
+        {
+            values.TryGetValue("CurrentGameDateString", out var date);
+            values.TryGetValue(Team + ".Name", out var club);
+            Plugin.L.LogInfo($"In-game date: {date ?? "data unavailable"}");
+            Plugin.L.LogInfo($"Club: {club ?? "data unavailable"}");
+            foreach (var pair in values)
+                Plugin.L.LogInfo($"  {pair.Key} = {pair.Value ?? "(no answer)"}");
         }
     }
 }

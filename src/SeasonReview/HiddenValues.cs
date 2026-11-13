@@ -13,7 +13,7 @@ namespace SeasonReview
             "ability", "potential", "hidden", "debug", "proneness", "personality",
             "adaptability", "ambition", "controversy", "loyalty", "pressure", "professional",
             "sportsmanship", "temperament", "consistency", "dirtiness", "importantmatches",
-            "versatility",
+            "versatility", "susceptib", "injuryrisk", "riskfactor",
         };
 
         public static bool IsHidden(string name)
@@ -24,6 +24,15 @@ namespace SeasonReview
                     return true;
             return name.Equals("ca", StringComparison.OrdinalIgnoreCase)
                    || name.Equals("pa", StringComparison.OrdinalIgnoreCase);
+        }
+
+        /// <summary>True if any dot-separated segment of a binding path is a hidden value.</summary>
+        public static bool IsHiddenPath(string path)
+        {
+            if (string.IsNullOrEmpty(path)) return false;
+            foreach (var segment in path.Split('.'))
+                if (IsHidden(segment)) return true;
+            return false;
         }
     }
 }
