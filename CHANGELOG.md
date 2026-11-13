@@ -3,6 +3,14 @@
 All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased]
+
+### Planned for 0.1.1
+
+- Season-end check during holidays: run the once-a-day season check while the game is processing a
+  holiday (not during matches), so that holidaying past the last league match into the next season
+  no longer misses the report. Needs testing for performance and stability first.
+
 ## [0.1.0] - 2026-11-14
 
 First release. Tested with Football Manager 27.0.1 and BepInEx 6.0.0-be.793 on Linux with Proton.
