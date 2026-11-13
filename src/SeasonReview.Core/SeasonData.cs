@@ -34,6 +34,15 @@ namespace SeasonReview
         public string Name;
         public int Age, Appearances, Goals, Assists, Minutes;
         public double AverageRating;
+
+        /// <summary>Out on loan this season (sent out in this season's transfers). The game's
+        /// season statistics then mostly come from the loan club.</summary>
+        public bool LoanedOut;
+        public string LoanClub;
+
+        /// <summary>Joined after the club's first competitive match: the game's season
+        /// statistics can include matches for the previous club.</summary>
+        public bool JoinedMidSeason;
     }
 
     internal sealed class TransferDeal
@@ -85,6 +94,9 @@ namespace SeasonReview
 
         // Players
         public List<PlayerSeason> Players = new();
+
+        /// <summary>Players who played for the club this season (everyone except those out on loan).</summary>
+        public IEnumerable<PlayerSeason> Squad => Players.Where(p => !p.LoanedOut);
         public PlayerSeason PlayerOfTheSeason;
         /// <summary>Competitive matches the club played, and the appearances needed to qualify
         /// for player of the season (two thirds of them).</summary>
@@ -145,8 +157,8 @@ namespace SeasonReview
             Section("matches", () => BuildMatches(r, data));
             Section("league", () => BuildLeague(r, data, warn));
             Section("objectives", () => BuildObjectives(r, data));
-            Section("players", () => BuildPlayers(r, data));
             Section("transfers", () => BuildTransfers(r, data));
+            Section("players", () => BuildPlayers(r, data));
             Section("finances", () => BuildFinances(r, data));
             Section("injuries", () => BuildInjuries(r, data));
             Section("confidence", () =>
@@ -364,8 +376,44 @@ namespace SeasonReview
                 });
             }
             if (data.Players.Count == 0) throw new InvalidOperationException("no players");
+            MarkLoansAndLateArrivals(data);
             data.CompetitiveMatches = data.Matches.Count(m => !m.Friendly);
-            data.PlayerOfTheSeason = PickPlayerOfTheSeason(data.Players, data.CompetitiveMatches, out data.PlayerOfTheSeasonMinimum);
+            data.PlayerOfTheSeason = PickPlayerOfTheSeason(data.Squad.ToList(), data.CompetitiveMatches, out data.PlayerOfTheSeasonMinimum);
+        }
+
+        /// <summary>
+        /// The game's squad list still contains players sent out on loan, and its season
+        /// statistics count every club match a player played, for whichever club (verified:
+        /// a player loaned out on 29 June still showed matches in August). Loaned-out players
+        /// are therefore kept out of the club's statistics, and players who joined during the
+        /// season are flagged. Both are recognised from this season's transfers.
+        /// </summary>
+        private static void MarkLoansAndLateArrivals(SeasonData data)
+        {
+            var loanedOut = new Dictionary<string, TransferDeal>(StringComparer.Ordinal);
+            foreach (var deal in data.Departures.Where(t => t.Loan && t.Player != null))
+                if (!loanedOut.TryGetValue(deal.Player, out var known) || (deal.Date ?? DateTime.MinValue) > (known.Date ?? DateTime.MinValue))
+                    loanedOut[deal.Player] = deal;
+
+            var firstMatch = data.Matches.Where(m => !m.Friendly && m.Date != null).Select(m => m.Date.Value).DefaultIfEmpty().Min();
+            var lateArrivals = new HashSet<string>(
+                data.Arrivals.Where(t => t.Player != null && t.Date != null && firstMatch != default && t.Date.Value > firstMatch)
+                    .Select(t => t.Player), StringComparer.Ordinal);
+
+            foreach (var p in data.Players)
+            {
+                if (loanedOut.TryGetValue(p.Name, out var deal))
+                {
+                    // Came back later in the season (recalled or re-signed)? Then they count again.
+                    bool returned = data.Arrivals.Any(a => a.Player == p.Name && a.Date != null && deal.Date != null && a.Date > deal.Date);
+                    if (!returned)
+                    {
+                        p.LoanedOut = true;
+                        p.LoanClub = deal.OtherClub;
+                    }
+                }
+                p.JoinedMidSeason = !p.LoanedOut && lateArrivals.Contains(p.Name);
+            }
         }
 
         /// <summary>

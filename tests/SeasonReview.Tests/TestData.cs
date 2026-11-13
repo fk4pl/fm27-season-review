@@ -107,6 +107,8 @@ namespace SeasonReview.Tests
                 Player("Sub Three", 24, 4, 1, 0, 8.6, 120),
                 Player("Youngster Four", 19, 12, 2, 4, 6.9, 700),
                 Player("Unused Five", 18, 0, 0, 0, 0, 0),
+                Player("Loaned Away", 21, 30, 9, 2, 7.9, 2600), // out on loan: must not count
+                Player("Winter Signing", 26, 10, 4, 1, 7.0, 850), // joined in January
             };
 
             var transfers = new GameRecord();
@@ -114,8 +116,13 @@ namespace SeasonReview.Tests
             {
                 Deal("Striker One", "Old Club", null, 12000000, false),
                 Deal("Loanee", "Parent FC", null, 0, true),
+                Deal("Winter Signing", "Winter FC", null, 0, false, new DateTime(2027, 1, 15)),
             };
-            transfers.Lists[SeasonSpec.TransfersOut] = new List<GameRecord> { Deal("Seller", null, "Buyer FC", 5000000, false) };
+            transfers.Lists[SeasonSpec.TransfersOut] = new List<GameRecord>
+            {
+                Deal("Seller", null, "Buyer FC", 5000000, false),
+                Deal("Loaned Away", null, "Loan Town", 0, true),
+            };
             r.Lists[SeasonSpec.Transfers] = new List<GameRecord> { transfers };
 
             var objectives = new GameRecord();
@@ -171,7 +178,7 @@ namespace SeasonReview.Tests
             return p;
         }
 
-        private static GameRecord Deal(string player, string seller, string buyer, double fee, bool loan)
+        private static GameRecord Deal(string player, string seller, string buyer, double fee, bool loan, DateTime? date = null)
         {
             var t = new GameRecord();
             t.Values["Player.Name"] = Link(player);
@@ -179,7 +186,8 @@ namespace SeasonReview.Tests
             t.Values["BuyingTeam.Name"] = buyer == null ? null : Link(buyer);
             t.Values["Fee"] = fee.ToString(System.Globalization.CultureInfo.InvariantCulture);
             t.Values["IsOnLoan"] = loan ? "True" : "False";
-            t.Values["Date"] = GameDate(2026, 7, 1);
+            var d = date ?? new DateTime(2026, 7, 1);
+            t.Values["Date"] = GameDate(d.Year, d.Month, d.Day);
             return t;
         }
 

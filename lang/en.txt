@@ -112,6 +112,10 @@ players.minutes = Minutes
 players.goals = Goals
 players.assistsshort = Assists
 players.rating = Av. rating
+players.midseason = * Joined during the season: the game's season statistics may include matches for the previous club.
+players.onloan = Out on loan
+players.loanclub = Loan club
+players.onloan.note = Not counted in the club's statistics above. These are the game's season statistics for the player, mostly from the loan club.
 
 transfers.arrivals = Arrivals
 transfers.departures = Departures

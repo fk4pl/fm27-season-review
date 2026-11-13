@@ -256,6 +256,42 @@ namespace SeasonReview.Tests
         }
 
         [Fact]
+        public void LoanedOutPlayersAreKeptOutOfTheClubsStatistics()
+        {
+            var d = Build();
+            var away = d.Players.Single(p => p.Name == "Loaned Away");
+            Assert.True(away.LoanedOut);
+            Assert.Equal("Loan Town", away.LoanClub);
+            Assert.DoesNotContain(d.Squad, p => p.Name == "Loaned Away");
+            Assert.Equal("Striker One", d.PlayerOfTheSeason.Name); // "Loaned Away" has 7.9 at the loan club
+        }
+
+        [Fact]
+        public void PlayersJoiningMidSeasonAreFlagged()
+        {
+            var d = Build();
+            Assert.True(d.Players.Single(p => p.Name == "Winter Signing").JoinedMidSeason);
+            Assert.False(d.Players.Single(p => p.Name == "Striker One").JoinedMidSeason); // joined before the first match
+        }
+
+        [Fact]
+        public void RecalledLoanPlayerCountsAgain()
+        {
+            var raw = TestData.Season();
+            var back = new GameRecord();
+            back.Values["Player.Name"] = TestData.Link("Loaned Away");
+            back.Values["SellingTeam.Name"] = TestData.Link("Loan Town");
+            back.Values["Fee"] = "0";
+            back.Values["IsOnLoan"] = "False";
+            back.Values["Date"] = TestData.GameDate(2027, 1, 2);
+            raw.Items(SeasonSpec.Transfers)[0].Lists[SeasonSpec.TransfersIn].Add(back);
+            var d = SeasonDataBuilder.Build(raw, _ => { });
+            var player = d.Players.Single(p => p.Name == "Loaned Away");
+            Assert.False(player.LoanedOut);
+            Assert.True(player.JoinedMidSeason);
+        }
+
+        [Fact]
         public void LeagueFallsBackToResultsWithoutATable()
         {
             var raw = TestData.Season();
@@ -311,9 +347,10 @@ namespace SeasonReview.Tests
         public void TransfersAndNetSpend()
         {
             var d = Build();
-            Assert.Equal(2, d.Arrivals.Count);
+            Assert.Equal(3, d.Arrivals.Count);
             Assert.Equal("Old Club", d.Arrivals[0].OtherClub);
             Assert.Equal("Buyer FC", d.Departures[0].OtherClub);
+            Assert.Equal(2, d.Departures.Count);
             Assert.Equal(7000000, d.NetSpend);
         }
 
@@ -480,6 +517,18 @@ namespace SeasonReview.Tests
             Assert.Contains("(1 league match left)", Document(TestData.English(), remaining: 1).Notice);
             var none = Document(TestData.English());
             Assert.Null(none.Notice);
+        }
+
+        [Fact]
+        public void LoansAndLateArrivalsAreShownSeparately()
+        {
+            var md = MarkdownRenderer.Render(Document(TestData.English()));
+            var players = md.Substring(md.IndexOf("## Players", StringComparison.Ordinal), md.IndexOf("## Transfers", StringComparison.Ordinal) - md.IndexOf("## Players", StringComparison.Ordinal));
+            var squadTables = players.Substring(0, players.IndexOf("### Out on loan", StringComparison.Ordinal));
+            Assert.DoesNotContain("Loaned Away", squadTables);
+            Assert.Contains("| Loaned Away | Loan Town | 30 |", players);
+            Assert.Contains("Winter Signing \\*", players);
+            Assert.Contains("Joined during the season", players);
         }
 
         [Fact]

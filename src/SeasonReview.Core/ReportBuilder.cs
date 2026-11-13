@@ -122,7 +122,7 @@ namespace SeasonReview
             if (signing != null)
                 moments.Items.Add(_s.Format("summary.moment.signing", ("player", signing.Player),
                     ("club", signing.OtherClub ?? "?"), ("fee", Cash(signing.Fee))));
-            var scorer = _d.Players.Where(p => p.Goals > 0).OrderByDescending(p => p.Goals).FirstOrDefault();
+            var scorer = _d.Squad.Where(p => p.Goals > 0).OrderByDescending(p => p.Goals).FirstOrDefault();
             if (scorer != null)
                 moments.Items.Add(_s.Format("summary.moment.scorer", ("player", scorer.Name), ("goals", _s.Count(scorer.Goals, "goal"))));
             if (moments.Items.Count > 0)
@@ -174,7 +174,7 @@ namespace SeasonReview
                 section.Add(new Highlight
                 {
                     Title = _s.Get("players.pots"),
-                    Text = pots.Name,
+                    Text = Marked(pots),
                     Detail = _s.Format("players.pots.text", ("player", pots.Name), ("apps", _s.Count(pots.Appearances, "appearance")),
                         ("rating", Rating(pots)), ("goals", _s.Count(pots.Goals, "goal")), ("assists", _s.Count(pots.Assists, "assist")))
                         + " " + _s.Format("players.pots.how",
@@ -182,16 +182,39 @@ namespace SeasonReview
                             ("matches", _s.Count(_d.CompetitiveMatches, "match"))),
                 });
 
-            int most = _d.Players.Count == 0 ? 0 : _d.Players.Max(p => p.Appearances);
-            PlayerTable(section, "players.scorers",
-                _d.Players.Where(p => p.Goals > 0).OrderByDescending(p => p.Goals).ThenBy(p => p.Appearances).Take(5));
-            PlayerTable(section, "players.assists",
-                _d.Players.Where(p => p.Assists > 0).OrderByDescending(p => p.Assists).ThenBy(p => p.Appearances).Take(5));
-            PlayerTable(section, "players.ratings",
-                _d.Players.Where(p => p.AverageRating > 0 && p.Appearances * 3 >= most)
+            var squad = _d.Squad.ToList();
+            int most = squad.Count == 0 ? 0 : squad.Max(p => p.Appearances);
+            bool flagged = false;
+            flagged |= PlayerTable(section, "players.scorers",
+                squad.Where(p => p.Goals > 0).OrderByDescending(p => p.Goals).ThenBy(p => p.Appearances).Take(5));
+            flagged |= PlayerTable(section, "players.assists",
+                squad.Where(p => p.Assists > 0).OrderByDescending(p => p.Assists).ThenBy(p => p.Appearances).Take(5));
+            flagged |= PlayerTable(section, "players.ratings",
+                squad.Where(p => p.AverageRating > 0 && p.Appearances * 3 >= most)
                     .OrderByDescending(p => p.AverageRating).Take(5));
-            PlayerTable(section, "players.young",
-                _d.Players.Where(p => p.Age > 0 && p.Age <= 21 && p.Appearances > 0).OrderByDescending(p => p.Minutes));
+            flagged |= PlayerTable(section, "players.young",
+                squad.Where(p => p.Age > 0 && p.Age <= 21 && p.Appearances > 0).OrderByDescending(p => p.Minutes));
+            if (flagged || (pots != null && pots.JoinedMidSeason))
+                section.Add(new Note { Text = _s.Get("players.midseason") });
+
+            var away = _d.Players.Where(p => p.LoanedOut).OrderByDescending(p => p.Appearances).ThenBy(p => p.Name, StringComparer.Ordinal).ToList();
+            if (away.Count > 0)
+            {
+                section.Add(new Subheading { Text = _s.Get("players.onloan") });
+                var table = new Table
+                {
+                    Headers = new[]
+                    {
+                        _s.Get("players.name"), _s.Get("players.loanclub"), _s.Get("players.apps"),
+                        _s.Get("players.goals"), _s.Get("players.assistsshort"), _s.Get("players.rating"),
+                    },
+                    Numeric = new[] { false, false, true, true, true, true },
+                };
+                foreach (var p in away)
+                    table.Rows.Add(new[] { p.Name, p.LoanClub ?? "-", N(p.Appearances), N(p.Goals), N(p.Assists), Rating(p) });
+                section.Add(table);
+                section.Add(new Note { Text = _s.Get("players.onloan.note") });
+            }
             return section;
         }
 
@@ -313,11 +336,12 @@ namespace SeasonReview
             }
         }
 
-        private void PlayerTable(ReportSection section, string titleKey, IEnumerable<PlayerSeason> players)
+        /// <returns>True if a listed player joined during the season (marked with *).</returns>
+        private bool PlayerTable(ReportSection section, string titleKey, IEnumerable<PlayerSeason> players)
         {
             section.Add(new Subheading { Text = _s.Get(titleKey) });
             var list = players.ToList();
-            if (list.Count == 0) { section.Add(new Paragraph { Text = _s.Get("common.none") }); return; }
+            if (list.Count == 0) { section.Add(new Paragraph { Text = _s.Get("common.none") }); return false; }
             var table = new Table
             {
                 Headers = new[]
@@ -328,9 +352,12 @@ namespace SeasonReview
                 Numeric = new[] { false, true, true, true, true, true, true },
             };
             foreach (var p in list)
-                table.Rows.Add(new[] { p.Name, N(p.Age), N(p.Appearances), N(p.Minutes), N(p.Goals), N(p.Assists), Rating(p) });
+                table.Rows.Add(new[] { Marked(p), N(p.Age), N(p.Appearances), N(p.Minutes), N(p.Goals), N(p.Assists), Rating(p) });
             section.Add(table);
+            return list.Any(p => p.JoinedMidSeason);
         }
+
+        private static string Marked(PlayerSeason p) => p.JoinedMidSeason ? p.Name + " *" : p.Name;
 
         private void DealTable(ReportSection section, string titleKey, string clubKey, List<TransferDeal> deals)
         {

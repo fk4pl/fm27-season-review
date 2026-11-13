@@ -112,6 +112,10 @@ players.minutes = Dakika
 players.goals = Gol
 players.assistsshort = Asist
 players.rating = Ort. puan
+players.midseason = * Sezon içinde katıldı: oyunun sezon istatistikleri önceki kulüpteki maçları da içerebilir.
+players.onloan = Kiralıktaki oyuncular
+players.loanclub = Kiralık kulübü
+players.onloan.note = Yukarıdaki kulüp istatistiklerine dahil edilmedi. Bunlar oyuncunun oyundaki sezon istatistikleridir ve çoğunlukla kiralık kulübündeki maçlardan gelir.
 
 transfers.arrivals = Gelenler
 transfers.departures = Gidenler
