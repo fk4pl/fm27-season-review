@@ -45,7 +45,9 @@
     <ItemGroup>
       <LangFiles Include="../../lang/*.txt" />
     </ItemGroup>
-    <Delete Files="$(BepInExDir)/plugins/SeasonReview.dll" />
+    <!-- Delete first, then copy as a new file: a running game keeps its own (old) copy intact
+         instead of having the loaded file overwritten underneath it. -->
+    <Delete Files="$(BepInExDir)/plugins/SeasonReview.dll;$(BepInExDir)/plugins/SeasonReview/SeasonReview.dll" />
     <Copy SourceFiles="$(TargetPath)" DestinationFolder="$(BepInExDir)/plugins/SeasonReview" />
     <Copy SourceFiles="@(LangFiles)" DestinationFolder="$(BepInExDir)/plugins/SeasonReview/lang" />
     <Message Importance="high" Text="SeasonReview.dll copied to $(BepInExDir)/plugins/SeasonReview" />
