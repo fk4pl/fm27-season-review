@@ -2,42 +2,58 @@ using System;
 using System.Collections.Generic;
 using SI.Bindable;
 using SI.Core;
+using Il2CppCollections = Il2CppSystem.Collections;
 using Il2CppMemory = Il2CppSystem.MemoryExtensions;
 
 namespace SeasonReview
 {
     /// <summary>
-    /// Reads game values through the game's own UI binding tree.
+    /// Reads game values through the game's own UI binding tree. Read-only towards the game.
     ///
-    /// The tree has a permanent "game" node (a GameReference). Binding a relative path such as
-    /// "GameCurrentManagerClubTeam.Name" under it makes the game resolve that property exactly
-    /// as it does for its own screens; the value arrives a few frames later. This only adds
-    /// read subscriptions to the UI tree. It never sets values or sends events to the game.
+    /// The tree has a permanent "game" node (a GameReference). Binding a property path under a
+    /// node makes the game resolve it exactly as it does for its own screens; the value arrives
+    /// some frames later. List values are enumerated and each item is parked on a private node
+    /// (under one top-level node owned by this mod) so its properties can be bound the same way.
+    /// The private nodes are removed when the read finishes. No values are ever written to
+    /// game-owned nodes and no events are sent to the simulation.
     /// </summary>
     internal sealed class GameReader
     {
-        private sealed class Request
+        private const string PrivateRoot = "SeasonReviewMod";
+        private const int MaxOpenRequests = 2500;  // throttle: bindings waiting for an answer
+        private const int IdleFrames = 240;        // finish when nothing has arrived for this long
+        private const int MaxFrames = 60 * 90;     // hard stop
+        private const int MaxScopes = 4000;        // safety cap on objects visited
+
+        private sealed class Scope
         {
-            public string Path;
-            public Bindings.Key Key;
-            public string Value;
-            public bool Answered;
+            public Bindings.Key Root;
+            public Spec Spec;
+            public Record Record;
         }
 
-        private const int TimeoutFrames = 600; // ~10 s at 60 fps; the game may be slower
+        private sealed class Request
+        {
+            public Bindings.Key Key;
+            public string Path;
+            public Record Record;
+            public ListSpec List; // null for plain values
+        }
 
-        private readonly List<Request> _requests = new();
+        private readonly Queue<Scope> _scopes = new();
+        private readonly List<Request> _open = new();
+        private readonly List<Request> _bound = new();
         private Bindings _bindings;
+        private Il2CppSystem.Object _owner;
         private Bindings.ValueChangedCallback _callback; // kept alive while bound
-        private Action<IReadOnlyDictionary<string, string>> _done;
-        private int _framesLeft;
+        private Action<Record> _done;
+        private Record _result;
+        private int _idle, _frames, _scopeCount, _privateCount, _answered, _requested;
 
         public bool Busy => _bindings != null;
+        public string Progress => $"{_answered}/{_requested} values, {_scopeCount} objects";
 
-        /// <summary>Starts reading the given paths (relative to the game node). Result values are
-        /// null where the game did not answer in time.</summary>
-        public bool Start(Bindings bindings, Il2CppSystem.Object owner, IEnumerable<string> paths,
-            Action<IReadOnlyDictionary<string, string>> done)
+        public bool Start(Bindings bindings, Il2CppSystem.Object owner, Spec spec, Action<Record> done)
         {
             if (Busy) return false;
 
@@ -49,27 +65,13 @@ namespace SeasonReview
             }
 
             _bindings = bindings;
+            _owner = owner;
             _done = done;
-            _framesLeft = TimeoutFrames;
-            _requests.Clear();
+            _result = new Record();
+            _idle = _frames = _scopeCount = _privateCount = _answered = _requested = 0;
             _callback = (Action<Bindings.Key, TypedValue>)OnValue;
 
-            var root = game.Key;
-            foreach (var path in paths)
-            {
-                if (HiddenValues.IsHiddenPath(path)) continue; // defence in depth
-                try
-                {
-                    var span = Il2CppMemory.AsSpan(path);
-                    var key = bindings.Bind(ref root, ref span, owner, _callback);
-                    _requests.Add(new Request { Path = path, Key = key });
-                }
-                catch (Exception e)
-                {
-                    Plugin.L.LogWarning($"Could not request '{path}': {e.Message}");
-                    _requests.Add(new Request { Path = path, Answered = true });
-                }
-            }
+            _scopes.Enqueue(new Scope { Root = game.Key, Spec = spec, Record = _result });
             return true;
         }
 
@@ -77,66 +79,205 @@ namespace SeasonReview
         public void Tick()
         {
             if (!Busy) return;
+            _frames++;
+            _idle++;
 
-            bool allAnswered = true;
-            foreach (var r in _requests)
+            // Open more bindings while under the throttle.
+            while (_scopes.Count > 0 && _open.Count < MaxOpenRequests)
+                OpenScope(_scopes.Dequeue());
+
+            // Poll: values that were already cached do not always raise the callback.
+            for (int i = _open.Count - 1; i >= 0; i--)
             {
-                if (r.Answered) continue;
+                var r = _open[i];
                 try
                 {
                     var key = r.Key;
-                    Capture(r, _bindings.Get(ref key));
+                    Answer(r, _bindings.Get(ref key));
                 }
                 catch (Exception) { /* not ready yet */ }
-                if (!r.Answered) allAnswered = false;
             }
 
-            if (allAnswered || --_framesLeft <= 0) Finish();
+            bool finished = _open.Count == 0 && _scopes.Count == 0;
+            if (finished || _idle > IdleFrames || _frames > MaxFrames) Finish(finished);
+        }
+
+        private void OpenScope(Scope scope)
+        {
+            if (++_scopeCount > MaxScopes) return;
+            foreach (var path in scope.Spec.Values) Bind(scope, path, null);
+            foreach (var list in scope.Spec.Lists) Bind(scope, list.Path, list);
+        }
+
+        private void Bind(Scope scope, string path, ListSpec list)
+        {
+            if (list == null) scope.Record.Values[path] = null;
+            if (HiddenValues.IsHiddenPath(path)) return; // defence in depth
+
+            try
+            {
+                var root = scope.Root;
+                var span = Il2CppMemory.AsSpan(path);
+                var key = _bindings.Bind(ref root, ref span, _owner, _callback);
+                var request = new Request { Key = key, Path = path, Record = scope.Record, List = list };
+                _open.Add(request);
+                _bound.Add(request);
+                _requested++;
+            }
+            catch (Exception e)
+            {
+                Plugin.L.LogWarning($"Could not request '{path}': {e.Message}");
+            }
         }
 
         private void OnValue(Bindings.Key key, TypedValue value)
         {
             try
             {
-                foreach (var r in _requests)
-                    if (!r.Answered && r.Key.m_key == key.m_key)
-                        Capture(r, value);
+                for (int i = _open.Count - 1; i >= 0; i--)
+                    if (_open[i].Key.m_key == key.m_key)
+                        Answer(_open[i], value);
             }
             catch (Exception) { /* never throw into the game's binding update */ }
         }
 
-        private static void Capture(Request r, TypedValue value)
+        private void Answer(Request r, TypedValue value)
         {
-            if (value == null) return;
+            if (value == null || !_open.Contains(r)) return;
+
+            if (r.List != null)
+            {
+                Il2CppSystem.Object obj = null;
+                try { obj = value.Get(); } catch (Exception) { }
+                if (obj == null) return; // list not delivered yet
+                _open.Remove(r);
+                _answered++;
+                _idle = 0;
+                ExpandList(r, obj);
+                return;
+            }
+
             var text = value.AsString();
             if (text == null) return;
-            r.Value = text;
-            if (text.Length > 0) r.Answered = true; // an empty string may be a placeholder; keep waiting
+            r.Record.Values[r.Path] = text;
+            if (text.Length == 0) return; // may be a placeholder; keep waiting for a real value
+            _open.Remove(r);
+            _answered++;
+            _idle = 0;
         }
 
-        private void Finish()
+        private void ExpandList(Request r, Il2CppSystem.Object obj)
         {
-            var result = new Dictionary<string, string>();
-            foreach (var r in _requests)
+            var records = new List<Record>();
+            r.Record.Lists[r.Path] = records;
+            string typeName = "?";
+            try { typeName = obj.GetIl2CppType().FullName; } catch (Exception) { }
+
+            List<Il2CppSystem.Object> items;
+            try { items = Enumerate(obj, r.List.MaxItems); }
+            catch (Exception e)
             {
-                result[r.Path] = r.Value;
-                if (!r.Key.IsValid()) continue;
+                r.Record.ListNotes[r.Path] = $"type {typeName}; cannot enumerate: {e.Message}";
+                return;
+            }
+            if (items == null)
+            {
+                r.Record.ListNotes[r.Path] = $"type {typeName}; not a collection";
+                return;
+            }
+
+            string itemType = "-";
+            foreach (var item in items)
+            {
+                if (item == null) continue;
+                try
+                {
+                    // Lists hold either references directly or TypedValues wrapping them.
+                    var payload = item;
+                    var wrapped = item.TryCast<TypedValue>();
+                    if (wrapped != null) payload = wrapped.Get();
+                    if (payload == null) continue;
+                    if (itemType == "-") itemType = payload.GetIl2CppType().FullName;
+
+                    // A fresh holder, so removing our node can never release a game-owned value.
+                    var holder = TypedValue.GetReferenceTypedValue();
+                    holder.SetValue(payload);
+
+                    var span = Il2CppMemory.AsSpan(PrivateRoot + "." + (_privateCount++).ToString("X"));
+                    var key = _bindings.Set(ref span, holder, Bindings.NodeFlags.None, (Bindings.SetFlags)0);
+
+                    var record = new Record();
+                    records.Add(record);
+                    _scopes.Enqueue(new Scope { Root = key, Spec = r.List.Item, Record = record });
+                }
+                catch (Exception e)
+                {
+                    r.Record.ListNotes[r.Path] = $"type {typeName}; item failed: {e.Message}";
+                    return;
+                }
+            }
+            r.Record.ListNotes[r.Path] = $"type {typeName}; {records.Count} items of {itemType}";
+        }
+
+        private static List<Il2CppSystem.Object> Enumerate(Il2CppSystem.Object obj, int max)
+        {
+            var result = new List<Il2CppSystem.Object>();
+
+            var list = obj.TryCast<Il2CppCollections.IList>();
+            var collection = obj.TryCast<Il2CppCollections.ICollection>();
+            if (list != null && collection != null)
+            {
+                int count = Math.Min(collection.Count, max);
+                for (int i = 0; i < count; i++) result.Add(list[i]);
+                return result;
+            }
+
+            var enumerable = obj.TryCast<Il2CppCollections.IEnumerable>();
+            if (enumerable == null) return null;
+            var enumerator = enumerable.GetEnumerator();
+            while (result.Count < max && enumerator.MoveNext()) result.Add(enumerator.Current);
+            return result;
+        }
+
+        private void Finish(bool complete)
+        {
+            if (!complete)
+                Plugin.L.LogWarning($"Game data read stopped early ({Progress}); {_open.Count} values unanswered.");
+
+            foreach (var r in _bound)
+            {
                 try
                 {
                     var key = r.Key;
-                    _bindings.Unbind(ref key, _callback); // drop our subscription; nodes stay with the game
+                    if (key.IsValid()) _bindings.Unbind(ref key, _callback);
                 }
-                catch (Exception e) { Plugin.L.LogWarning($"Unbind '{r.Path}' failed: {e.Message}"); }
+                catch (Exception) { /* node may already be gone */ }
+            }
+
+            if (_privateCount > 0)
+            {
+                try
+                {
+                    var span = Il2CppMemory.AsSpan(PrivateRoot);
+                    var key = Bindings.MakeKey(ref span);
+                    _bindings.Remove(ref key);
+                }
+                catch (Exception e) { Plugin.L.LogWarning($"Could not remove private nodes: {e.Message}"); }
             }
 
             var done = _done;
+            var result = _result;
             _bindings = null;
+            _owner = null;
             _done = null;
             _callback = null;
-            _requests.Clear();
+            _result = null;
+            _open.Clear();
+            _bound.Clear();
+            _scopes.Clear();
 
             try { done?.Invoke(result); }
-            catch (Exception e) { Plugin.L.LogWarning($"Result handler failed: {e.Message}"); }
+            catch (Exception e) { Plugin.L.LogWarning($"Result handler failed: {e}"); }
         }
 
         /// <summary>Finds the permanent node named "game" near the top of the tree.</summary>

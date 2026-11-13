@@ -187,16 +187,16 @@ documented only as background.
 
 | Path under `game` | Result |
 |---|---|
-| `CurrentGameDate` | `GameDate { Data1 = N, Type = FmdateSiDate }`, N = year << 17 \| zero-based day of year << 8 \| low byte (meaning unknown, changes daily) |
+| `CurrentGameDate` | `GameDate { Data1 = N, Type = FmdateSiDate }`, N = year << 17 \| one-based day of year << 8 \| low byte (meaning unknown, changes daily) |
 | `CurrentGameYear` | number |
 | `GameCurrentManagerClubTeam.Name`, `.Club.Name`, `.Division.Name` | link markup + visible text (see below) |
 | `GameCurrentManagerClubTeam.LeaguePositionString` | `4th` |
 | `…TeamConfidence.BoardConfidenceOverallString` / `SupporterConfidenceOverallString` | the game's own sentence |
-| `…Club.OverallBalance`, `…Club.TotalIncomeThisSeason` | plain integers (currency unit **UNVERIFIED**) |
+| `…Club.OverallBalance`, `…Club.TotalIncomeThisSeason` | plain integers in whole currency units (44074012 was shown in game as €44.07M; whether the raw number follows the user's currency setting is **UNVERIFIED**) |
 
 `CurrentGameDateString` never answered (10 s timeout); decode `CurrentGameDate` instead.
-**UNVERIFIED:** day-of-year being zero-based (decoded 2026-06-30, then 2026-07-01 after one
-"Continue"); to be confirmed against the date shown in the game.
+Day of year is **one-based** (confirmed by the user: day 180 of 2026 was shown in game as
+29 June 2026, day 181 as 30 June).
 
 Name properties are returned as a clickable link: a base64 blob (link target and a
 length-prefixed tooltip such as "Click to view Beşiktaş JK") immediately followed by the visible
@@ -228,7 +228,7 @@ runs (compute from `FixtureList`).
    binding paths (the tree shows `Items.<index>` and `Count` children under list nodes).
 2. Currency unit and formatting of money values; whether `…String` variants give the game's own
    formatted text.
-3. Zero- or one-based day of year in `CurrentGameDate`.
+3. Whether raw money values change with the currency chosen in preferences.
 4. Which season a "ThisSeason" property refers to right after the league ends.
 5. `InjurySusceptibility`, `InjuryRisk…` exist on `PersonReference`; they are on the hidden-value
    deny-list and must stay off the report.

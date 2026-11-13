@@ -56,7 +56,8 @@ namespace SeasonReview
 
         /// <summary>
         /// Parses the game's date value, printed as "GameDate { Data1 = N, Type = FmdateSiDate }",
-        /// where N = year &lt;&lt; 17 | zero-based day of year &lt;&lt; 8 | flags.
+        /// where N = year &lt;&lt; 17 | one-based day of year &lt;&lt; 8 | flags
+        /// (verified in game: day 180 of 2026 is shown as 29 June 2026).
         /// </summary>
         public static bool TryParseGameDate(string value, out DateTime date)
         {
@@ -68,8 +69,8 @@ namespace SeasonReview
 
             int year = (int)(packed >> 17);
             int dayOfYear = (int)((packed & 0x1FFFF) >> 8);
-            if (year < 1900 || year > 2200 || dayOfYear > 365) return false;
-            date = new DateTime(year, 1, 1).AddDays(dayOfYear);
+            if (year < 1900 || year > 2200 || dayOfYear < 1 || dayOfYear > 366) return false;
+            date = new DateTime(year, 1, 1).AddDays(dayOfYear - 1);
             return true;
         }
     }

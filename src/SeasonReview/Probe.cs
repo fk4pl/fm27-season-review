@@ -31,6 +31,7 @@ namespace SeasonReview
         {
             Plugin.L.LogInfo("---- Season Review: hotkey pressed ----");
 
+
             Bindings bindings = null;
             try
             {

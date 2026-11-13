@@ -17,6 +17,7 @@ namespace SeasonReview
         internal static ManualLogSource L;
         internal static ConfigEntry<bool> Enabled;
         internal static ConfigEntry<string> HotkeyText;
+        internal static ConfigEntry<string> OutputFolder;
         internal static ConfigEntry<bool> ProbeDump;
 
         public override void Load()
@@ -27,7 +28,9 @@ namespace SeasonReview
                 "Turn the mod on or off.");
             HotkeyText = Config.Bind("General", "Hotkey", "Ctrl+F8",
                 "Shortcut that reports on the season so far. Format: [Ctrl+][Shift+][Alt+]<F1-F24, A-Z or 0-9>.");
-            ProbeDump = Config.Bind("Developer", "ProbeDump", true,
+            OutputFolder = Config.Bind("General", "OutputFolder", "",
+                "Where reports are saved. Empty = Documents/Sports Interactive/Football Manager 27/SeasonReviews.");
+            ProbeDump = Config.Bind("Developer", "ProbeDump", false,
                 "On hotkey, also write discovery dumps (names only, no hidden values) to BepInEx/SeasonReview/.");
 
             if (!Enabled.Value)
@@ -44,22 +47,6 @@ namespace SeasonReview
     /// <summary>Polls the hotkey once per frame on Unity's main thread.</summary>
     public class SeasonReviewBehaviour : MonoBehaviour
     {
-        // Stage 1: the current date and the manager's club, plus a few values that prove deeper
-        // property chains can be read without the matching screen being open.
-        private const string Team = "GameCurrentManagerClubTeam";
-        private static readonly string[] HelloPaths =
-        {
-            "CurrentGameDate",
-            Team + ".Name",
-            Team + ".Club.Name",
-            Team + ".Division.Name",
-            Team + ".LeaguePositionString",
-            Team + ".TeamConfidence.BoardConfidenceOverallString",
-            Team + ".TeamConfidence.SupporterConfidenceOverallString",
-            Team + ".Club.OverallBalance",
-            Team + ".Club.TotalIncomeThisSeason",
-        };
-
         private readonly GameReader _reader = new GameReader();
         private Hotkey _hotkey;
         private string _parsedFrom;
@@ -88,7 +75,8 @@ namespace SeasonReview
                 {
                     if (_reader.Busy) { Plugin.L.LogInfo("Still reading game data, please wait."); return; }
                     var bindings = Probe.Run();
-                    if (bindings != null) _reader.Start(bindings, this, HelloPaths, LogHello);
+                    if (bindings != null && _reader.Start(bindings, this, SeasonSpec.Build(), OnData))
+                        Plugin.L.LogInfo("Reading season data from the game...");
                 }
             }
             catch (Exception e)
@@ -98,16 +86,23 @@ namespace SeasonReview
             }
         }
 
-        private static void LogHello(System.Collections.Generic.IReadOnlyDictionary<string, string> values)
+        private static void OnData(Record data)
         {
-            values.TryGetValue("CurrentGameDate", out var rawDate);
-            values.TryGetValue(Team + ".Name", out var club);
+            var rawDate = data.Get("CurrentGameDate");
+            var club = data.Get(SeasonSpec.Team + ".Name");
             Plugin.L.LogInfo(GameText.TryParseGameDate(rawDate, out var date)
                 ? $"In-game date: {date:yyyy-MM-dd}"
                 : "In-game date: data unavailable");
             Plugin.L.LogInfo($"Club: {(string.IsNullOrEmpty(club) ? "data unavailable" : GameText.StripLink(club))}");
-            foreach (var pair in values)
-                Plugin.L.LogInfo($"  {pair.Key} = {(pair.Value == null ? "(no answer)" : GameText.StripLink(pair.Value))}");
+
+            int answered = 0;
+            foreach (var value in data.Values.Values) if (value != null) answered++;
+            Plugin.L.LogInfo($"Top-level values answered: {answered}/{data.Values.Count}");
+            foreach (var note in data.ListNotes) Plugin.L.LogInfo($"  list {note.Key}: {note.Value}");
+
+            var folder = string.IsNullOrWhiteSpace(Plugin.OutputFolder.Value) ? DraftWriter.DefaultFolder() : Plugin.OutputFolder.Value;
+            try { Plugin.L.LogInfo("Draft written to " + DraftWriter.Write(data, folder)); }
+            catch (Exception e) { Plugin.L.LogWarning($"Could not write the draft: {e.Message}"); }
         }
     }
 }
