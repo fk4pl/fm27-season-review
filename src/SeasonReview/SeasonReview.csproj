@@ -10,6 +10,10 @@
     <CopyLocalLockFileAssemblies>false</CopyLocalLockFileAssemblies>
     <GenerateDocumentationFile>false</GenerateDocumentationFile>
     <CheckEolTargetFramework>false</CheckEolTargetFramework>
+    <!-- Release builds must not embed local paths (e.g. the PDB path with the user's home
+         folder): no debug symbols, and source paths mapped to a neutral root. -->
+    <DebugType>none</DebugType>
+    <PathMap>$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)../../'))=/src/</PathMap>
     <!-- FM27 install folder. Override with: dotnet build -p:GameDir="C:\...\Football Manager 27" -->
     <GameDir Condition="'$(GameDir)' == ''">$(HOME)/.local/share/Steam/steamapps/common/Football Manager 27</GameDir>
     <BepInExDir>$(GameDir)/BepInEx</BepInExDir>
