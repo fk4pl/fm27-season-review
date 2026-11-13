@@ -1,9 +1,10 @@
 using System;
+using System.IO;
+using System.Reflection;
 using BepInEx;
 using BepInEx.Configuration;
 using BepInEx.Logging;
 using BepInEx.Unity.IL2CPP;
-using UnityEngine;
 
 namespace SeasonReview
 {
@@ -16,9 +17,10 @@ namespace SeasonReview
 
         internal static ManualLogSource L;
         internal static ConfigEntry<bool> Enabled;
-        internal static ConfigEntry<string> HotkeyText;
+        internal static ConfigEntry<bool> AutoReport;
+        internal static ConfigEntry<string> Language;
         internal static ConfigEntry<string> OutputFolder;
-        internal static ConfigEntry<bool> ProbeDump;
+        internal static ConfigEntry<string> HotkeyText;
         internal static ConfigEntry<bool> ProbeHotkey;
         internal static ConfigEntry<bool> RawDump;
 
@@ -28,18 +30,18 @@ namespace SeasonReview
 
             Enabled = Config.Bind("General", "Enabled", true,
                 "Turn the mod on or off.");
-            HotkeyText = Config.Bind("General", "Hotkey", "Ctrl+F8",
-                "Shortcut that reports on the season so far. Format: [Ctrl+][Shift+][Alt+]<F1-F24, A-Z or 0-9>.");
+            AutoReport = Config.Bind("General", "AutoReport", true,
+                "Write the season review automatically after your club's last league match of the season (once per season).");
+            Language = Config.Bind("General", "Language", "en",
+                "Report language: en (English) or tr (Türkçe). Other codes work if a matching lang/<code>.txt file exists in the plugin folder.");
             OutputFolder = Config.Bind("General", "OutputFolder", "",
                 "Where reports are saved. Empty = Documents/Sports Interactive/Football Manager 27/SeasonReviews.");
-            ProbeDump = Config.Bind("Developer", "ProbeDump", false,
-                "On hotkey, also write discovery dumps (names only, no hidden values) to BepInEx/SeasonReview/.");
-
-            ProbeHotkey = Config.Bind("Developer", "ProbeHotkey", true,
-                "Shift+<Hotkey> writes discovery dumps of the current screen to BepInEx/SeasonReview/.");
-
-            RawDump = Config.Bind("Developer", "RawDump", true,
-                "Also write everything that was read, unformatted, to draft-raw.txt next to the report.");
+            HotkeyText = Config.Bind("General", "Hotkey", "Ctrl+F8",
+                "Writes a report for the season so far. Format: [Ctrl+][Shift+][Alt+]<F1-F24, A-Z or 0-9>.");
+            ProbeHotkey = Config.Bind("Developer", "ProbeHotkey", false,
+                "Shift+<Hotkey> writes discovery dumps of the current screen to BepInEx/SeasonReview/ (names only, hidden values skipped). For adapting the mod after game updates.");
+            RawDump = Config.Bind("Developer", "RawDump", false,
+                "Also write everything that was read, unformatted, to raw-data.txt next to the reports.");
 
             if (!Enabled.Value)
             {
@@ -48,110 +50,51 @@ namespace SeasonReview
             }
 
             AddComponent<SeasonReviewBehaviour>();
-            L.LogInfo("Season Review loaded");
+            L.LogInfo($"Season Review {Version} loaded (reports: {ReportFolder()})");
         }
-    }
 
-    /// <summary>Polls the hotkey once per frame on Unity's main thread.</summary>
-    public class SeasonReviewBehaviour : MonoBehaviour
-    {
-        private readonly GameReader _reader = new GameReader();
-        private Hotkey _hotkey, _probeHotkey;
-        private SI.Bindable.Bindings _bindings;
-        private string _parsedFrom;
+        internal static string ReportFolder()
+        {
+            if (!string.IsNullOrWhiteSpace(OutputFolder.Value)) return OutputFolder.Value.Trim();
+            // Under Proton this resolves to C:\users\steamuser\Documents inside the game's prefix.
+            var documents = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
+            return Path.Combine(documents, "Sports Interactive", "Football Manager 27", "SeasonReviews");
+        }
 
-        public SeasonReviewBehaviour(IntPtr ptr) : base(ptr) { }
+        internal static string StatePath() => Path.Combine(Paths.ConfigPath, Guid + ".reported.txt");
 
-        private void Update()
+        /// <summary>
+        /// Report text in the configured language. A lang/&lt;code&gt;.txt file next to the plugin
+        /// wins over the built-in copy, so translations can be added without rebuilding.
+        /// </summary>
+        internal static Strings LoadStrings()
+        {
+            var english = Strings.Parse("en", ReadLanguage("en") ?? "");
+            var code = (Language.Value ?? "en").Trim().ToLowerInvariant();
+            if (code == "en" || code.Length == 0) return english;
+            var text = ReadLanguage(code);
+            if (text != null) return Strings.Parse(code, text, english);
+            L.LogWarning($"Language '{code}' not found; using English.");
+            return english;
+        }
+
+        private static string ReadLanguage(string code)
         {
             try
             {
-                var text = Plugin.HotkeyText.Value;
-                if (text != _parsedFrom)
+                var folder = Path.GetDirectoryName(typeof(Plugin).Assembly.Location);
+                if (!string.IsNullOrEmpty(folder))
                 {
-                    _parsedFrom = text;
-                    if (!Hotkey.TryParse(text, out _hotkey))
-                    {
-                        Plugin.L.LogWarning($"Invalid hotkey '{text}', falling back to Ctrl+F8.");
-                        Hotkey.TryParse("Ctrl+F8", out _hotkey);
-                    }
-                    Plugin.L.LogInfo($"Hotkey: {_hotkey}");
-                    // Developer probe: the same shortcut with Shift held.
-                    _probeHotkey = null;
-                    if (Plugin.ProbeHotkey.Value && !_hotkey.Shift && Hotkey.TryParse("Shift+" + _hotkey, out var probe))
-                        _probeHotkey = probe;
-                }
-
-                _reader.Tick();
-
-                if (_probeHotkey != null && _probeHotkey.PressedThisFrame())
-                {
-                    Probe.Run(true);
-                    return;
-                }
-
-                if (_hotkey.PressedThisFrame())
-                {
-                    if (_reader.Busy) { Plugin.L.LogInfo("Still reading game data, please wait."); return; }
-                    var bindings = Probe.Run();
-                    if (bindings != null && _reader.Start(bindings, this, SeasonSpec.BuildHeader(), OnHeader))
-                    {
-                        _bindings = bindings;
-                        Plugin.L.LogInfo("Reading season data from the game...");
-                    }
+                    var file = Path.Combine(folder, "lang", code + ".txt");
+                    if (File.Exists(file)) return File.ReadAllText(file);
                 }
             }
-            catch (Exception e)
-            {
-                // Never let an exception escape into the game's update loop.
-                Plugin.L.LogWarning($"Hotkey handling failed: {e.Message}");
-            }
-        }
+            catch (Exception e) { L.LogWarning($"Could not read language file '{code}': {e.Message}"); }
 
-        // First read: which season is it? Then the full read with that season's year.
-        private void OnHeader(GameRecord header)
-        {
-            int year = 0;
-            var season = SeasonDataBuilder.Text(header.Get(SeasonSpec.Division + ".SeasonName"));
-            if (season != null && season.Length >= 4) int.TryParse(season.Substring(0, 4), out year);
-            if (year == 0 && GameText.TryParseGameDate(header.Get("CurrentGameDate"), out var date))
-                year = date.Month >= 7 ? date.Year : date.Year - 1;
-            if (year == 0)
-            {
-                Plugin.L.LogWarning("Season could not be determined; transfers will be unavailable.");
-            }
-
-            if (_bindings == null || !_reader.Start(_bindings, this, SeasonSpec.Build(year), OnData))
-                Plugin.L.LogWarning("Game data unavailable: could not start the season read.");
-        }
-
-        private void OnData(GameRecord raw)
-        {
-            _bindings = null;
-            var data = SeasonDataBuilder.Build(raw, message => Plugin.L.LogWarning(message));
-
-            string report = DraftReport.Build(data, Money);
-            foreach (var line in report.Split('\n'))
-                if (line.Trim().Length > 0) Plugin.L.LogInfo(line.TrimEnd());
-
-            var folder = string.IsNullOrWhiteSpace(Plugin.OutputFolder.Value) ? DraftWriter.DefaultFolder() : Plugin.OutputFolder.Value;
-            try
-            {
-                System.IO.Directory.CreateDirectory(folder);
-                var path = System.IO.Path.Combine(folder, "draft.md");
-                System.IO.File.WriteAllText(path, report, new System.Text.UTF8Encoding(false));
-                Plugin.L.LogInfo("Draft report written to " + path);
-                if (Plugin.RawDump.Value) Plugin.L.LogInfo("Raw data written to " + DraftWriter.Write(raw, folder));
-            }
-            catch (Exception e) { Plugin.L.LogWarning($"Could not write the draft: {e.Message}"); }
-        }
-
-        /// <summary>Formats a raw amount (pounds) with the game's own formatter, which converts
-        /// to the currency chosen in the game's preferences.</summary>
-        private static string Money(double pounds)
-        {
-            try { return FM.UI.ChartCurrencyVisualFunctionLibrary.TranslateCurrencyValue(pounds); }
-            catch (Exception) { return "£" + pounds.ToString("N0", System.Globalization.CultureInfo.InvariantCulture); }
+            using var stream = Assembly.GetExecutingAssembly().GetManifestResourceStream($"SeasonReview.lang.{code}.txt");
+            if (stream == null) return null;
+            using var reader = new StreamReader(stream);
+            return reader.ReadToEnd();
         }
     }
 }

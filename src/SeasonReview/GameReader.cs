@@ -337,6 +337,34 @@ namespace SeasonReview
             catch (Exception e) { Plugin.L.LogWarning($"Result handler failed: {e}"); }
         }
 
+        /// <summary>The game's UI binding tree, or null when no game is running.</summary>
+        public static Bindings TryGetBindings()
+        {
+            try
+            {
+                if (GameSubsystems.TryGet<BindingSubsystem>(out var subsystem)) return subsystem;
+            }
+            catch (Exception) { }
+            return null;
+        }
+
+        /// <summary>
+        /// Reads a value the game's own UI already keeps under the "game" node (e.g.
+        /// "CurrentGameDate"), without requesting anything. Null if it is not there.
+        /// </summary>
+        public static string Peek(Bindings bindings, string name)
+        {
+            try
+            {
+                var game = FindGameNode(bindings);
+                for (var child = game?.FirstChild; child != null; child = child.NextSibling)
+                    if (string.Equals(child.Name, name, StringComparison.Ordinal))
+                        return child.Value?.AsString();
+            }
+            catch (Exception) { }
+            return null;
+        }
+
         /// <summary>Finds the permanent node named "game" near the top of the tree.</summary>
         private static Bindings.Node FindGameNode(Bindings bindings)
         {

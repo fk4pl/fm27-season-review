@@ -24,6 +24,12 @@ namespace SeasonReview
         public const string BalanceHistory = "BalanceHistory";
         public const string PastInjuries = "PastInjuries";
 
+        /// <summary>Context values the game's fixtures screen passes for the whole current season
+        /// (verified: returns played and future fixtures of all competitions).</summary>
+        public static Spec FixtureContexts(Spec spec) => spec
+            .Context("PreviousAmount", -1).Context("FutureAmount", -1)
+            .Context("FixturePadding", false).Context("YearIndex", 0);
+
         /// <summary>Small first read: what season is it?</summary>
         public static Spec BuildHeader() => new Spec().Value(
             "CurrentGameDate", "CurrentGameYear", Team + ".Name", Division + ".Name", Division + ".SeasonName");
@@ -32,7 +38,7 @@ namespace SeasonReview
         public static Spec Build(int seasonYear)
         {
             var spec = new Spec().Value(
-                "CurrentGameDate",
+                "CurrentGameDate", "GameName", "GameStartDate",
                 Team + ".Name", Team + ".LongName", Team + ".LeaguePosition", Team + ".LeaguePositionString",
                 Team + ".MediaExpectedPosition",
                 Division + ".Name", Division + ".SeasonName",
@@ -61,10 +67,7 @@ namespace SeasonReview
                 "FixtureDate", "Competition.Name", "Competition.IsFriendly",
                 "HomeTeam.Name", "AwayTeam.Name", "HomeScore", "AwayScore", "HasResult", "Result",
                 "HomeTeamWon", "AwayTeamWon");
-            spec.Object(Team, new Spec()
-                .Context("PreviousAmount", -1).Context("FutureAmount", -1)
-                .Context("FixturePadding", false).Context("YearIndex", 0)
-                .List("FixtureList", fixture, 90, Fixtures), Fixtures);
+            spec.Object(Team, FixtureContexts(new Spec()).List("FixtureList", fixture, 90, Fixtures), Fixtures);
 
             var tableRow = new Spec().Value(
                 "Team.Name", "TablePosition", "LeagueGamesPlayed", "LeagueGamesWon", "LeagueGamesDrawn", "LeagueGamesLost",

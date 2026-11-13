@@ -17,6 +17,12 @@
     <DeployToGame Condition="'$(DeployToGame)' == ''">true</DeployToGame>
   </PropertyGroup>
 
+  <!-- The game-independent code is compiled into this DLL, so players install one file. -->
+  <ItemGroup>
+    <Compile Include="../SeasonReview.Core/**/*.cs" Exclude="../SeasonReview.Core/bin/**;../SeasonReview.Core/obj/**" />
+    <EmbeddedResource Include="../../lang/*.txt" LogicalName="SeasonReview.lang.%(Filename)%(Extension)" />
+  </ItemGroup>
+
   <!-- Local build references only. These files belong to BepInEx / Sports Interactive / Unity
        and are never copied into the repository or the release. -->
   <ItemGroup>
@@ -34,9 +40,15 @@
     <Reference Include="$(BepInExDir)/interop/FM.UI.dll" Private="false" />
   </ItemGroup>
 
+  <!-- Installs as BepInEx/plugins/SeasonReview/SeasonReview.dll (+ lang/ for translations). -->
   <Target Name="DeployToGame" AfterTargets="Build" Condition="'$(DeployToGame)' == 'true'">
-    <Copy SourceFiles="$(TargetPath)" DestinationFolder="$(BepInExDir)/plugins" />
-    <Message Importance="high" Text="SeasonReview.dll copied to $(BepInExDir)/plugins" />
+    <ItemGroup>
+      <LangFiles Include="../../lang/*.txt" />
+    </ItemGroup>
+    <Delete Files="$(BepInExDir)/plugins/SeasonReview.dll" />
+    <Copy SourceFiles="$(TargetPath)" DestinationFolder="$(BepInExDir)/plugins/SeasonReview" />
+    <Copy SourceFiles="@(LangFiles)" DestinationFolder="$(BepInExDir)/plugins/SeasonReview/lang" />
+    <Message Importance="high" Text="SeasonReview.dll copied to $(BepInExDir)/plugins/SeasonReview" />
   </Target>
 
 </Project>

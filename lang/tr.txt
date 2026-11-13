@@ -1,0 +1,134 @@
+# Season Review - Türkçe rapor metinleri.
+#
+# Çeviri için: bu dosyayı <kod>.txt olarak kopyalayın, "=" işaretinden sonraki metinleri
+# çevirin ve BepInEx/config/io.github.seasonreview.fm27.cfg içinde Language = <kod> yapın.
+# {yer tutucuları} olduğu gibi bırakın. Eksik anahtarlar İngilizceye düşer.
+# Oyunun kendisinden gelen metinler (yönetim ve taraftar görüşleri, hedefler, turnuva
+# adları) oyunun dilinde kalır.
+
+language.name = Türkçe
+
+format.months = Ocak,Şubat,Mart,Nisan,Mayıs,Haziran,Temmuz,Ağustos,Eylül,Ekim,Kasım,Aralık
+format.date = {d} {month} {yyyy}
+format.ordinal = {n}.
+format.decimal = ,
+
+common.unavailable = Veri alınamadı.
+common.unknown = bilinmiyor
+common.none = Yok.
+common.home = iç saha
+common.away = deplasman
+common.loan = Kiralık
+common.free = Bedelsiz
+
+title = {club}: {season} Sezon Değerlendirmesi
+subtitle = {division} · rapor tarihi {date}
+interim = Ara rapor: lig sezonu henüz bitmedi ({remaining} lig maçı kaldı).
+footer.generated = Season Review {version} tarafından {date} (oyun içi tarih) tarihinde oluşturuldu.
+footer.language = Yönetim ve taraftar görüşleri, hedefler ve turnuva adları oyundan alıntıdır ve oyunun dilindedir.
+footer.money = Tutarlar oyunda kullandığınız para biriminde gösterilir.
+footer.seealso = Sezon sonu ödülleri, sezonun en iyi 11'i ve aylık finans raporları oyunun kendisinde yer almaya devam ediyor.
+
+tile.position = Lig sırası
+tile.points = Puan
+tile.record = G-B-M
+tile.goals = Goller
+
+section.summary = Sezon özeti
+section.league = Lig performansı
+section.players = Oyuncular
+section.transfers = Transferler
+section.finances = Finans
+section.injuries = Sakatlıklar
+section.board = Yönetim ve taraftarlar
+
+summary.finished = {division}: {club}, sezonu {teams} takım arasında {position} sırada ve {points} puanla tamamladı.
+summary.current = {division}: {club}, {played} maç sonunda {teams} takım arasında {position} sırada ve {points} puanda.
+summary.record = {won} galibiyet, {drawn} beraberlik, {lost} mağlubiyet; atılan gol {for}, yenilen gol {against}.
+summary.media.better = Bu, medyanın sezon öncesi tahmini olan {prediction} sıranın üzerinde.
+summary.media.worse = Bu, medyanın sezon öncesi tahmini olan {prediction} sıranın altında.
+summary.media.same = Bu, medyanın sezon öncesi tahminiyle birebir aynı.
+summary.expectations = Yönetimin beklentileri
+summary.objective = Hedef
+summary.verdict = Yönetimin görüşü
+summary.cups = Kupalar
+summary.cups.none = Kupa maçı oynanmadı.
+summary.moments = Sezonun öne çıkanları
+summary.moment.win = En farklı galibiyet: {opponent} karşısında {score} ({venue}, {competition}, {date}).
+summary.moment.defeat = En ağır yenilgi: {opponent} karşısında {score} ({venue}, {competition}, {date}).
+summary.moment.winrun = Ligde en uzun galibiyet serisi: {count} maç.
+summary.moment.unbeaten = Ligde en uzun yenilmezlik serisi: {count} maç.
+summary.moment.signing = En pahalı transfer: {player} ({club}, {fee}).
+summary.moment.scorer = Gol kralı: {player}, {goals} gol.
+
+cups.competition = Turnuva
+cups.record = O / G / B / M
+cups.last = Son maç
+
+league.split = Durum
+league.played = O
+league.won = G
+league.drawn = B
+league.lost = M
+league.for = AG
+league.against = YG
+league.points = P
+league.total = Toplam
+league.home = İç saha
+league.away = Deplasman
+
+players.scope = İstatistikler kulübün bu sezon oynadığı tüm turnuvaları kapsar.
+players.pots = Sezonun oyuncusu
+players.pots.text = {player}: {apps} maç, ortalama puan {rating}, {goals} gol ve {assists} asist.
+players.pots.how = Ortalama puana göre, maç sayısıyla ağırlıklandırılarak seçildi.
+players.scorers = Gol krallığı
+players.assists = Asist krallığı
+players.ratings = En yüksek ortalama puan (en çok oynayanın maç sayısının en az üçte biri)
+players.young = Genç oyuncular (21 yaş ve altı)
+players.name = Oyuncu
+players.age = Yaş
+players.apps = Maç
+players.minutes = Dakika
+players.goals = Gol
+players.assistsshort = Asist
+players.rating = Ort. puan
+
+transfers.arrivals = Gelenler
+transfers.departures = Gidenler
+transfers.player = Oyuncu
+transfers.from = Geldiği kulüp
+transfers.to = Gittiği kulüp
+transfers.fee = Bedel
+transfers.date = Tarih
+transfers.paid = Ödenen bonservisler
+transfers.received = Alınan bonservisler
+transfers.net = Net harcama
+transfers.loans = Kiralıklar
+transfers.loans.text = kiralık gelen: {in} · kiralık giden: {out}
+
+finances.balance.start = Sezon başı banka bakiyesi ({date})
+finances.balance.end = Şu anki banka bakiyesi
+finances.profit = Sezonun kâr/zararı (banka bakiyesindeki değişim)
+finances.income = Bu sezonki gelir (oyunun sezon toplamı)
+finances.expenditure = Bu sezonki gider (oyunun sezon toplamı)
+finances.projection = Sezon için öngörülen kâr/zarar (oyunun tahmini)
+finances.wages = Maaş gideri
+finances.wages.value = yıllık {amount}
+finances.status = Mali durum
+finances.note = Oyunun sezon toplamları muhasebe rakamlarıdır (örneğin sponsorluk anlaşıldığında yazılır); bu yüzden gelir eksi gider, banka bakiyesindeki değişime eşit değildir.
+
+injuries.summary = Bu sezon {count} sakatlık, toplam {days} gün kayıp.
+injuries.severity = Ağır: {major} · orta: {moderate} · hafif: {minor} · çok hafif: {slight}.
+injuries.longest = En uzun süre sahalardan uzak kalanlar
+injuries.player = Oyuncu
+injuries.injury = Sakatlık
+injuries.from = Başlangıç
+injuries.duration = Süre
+injuries.days = {days} gün
+injuries.ongoing = hâlâ sakat
+injuries.none = Bu sezon sakatlık yaşanmadı.
+
+board.board = Yönetim
+board.supporters = Taraftarlar
+board.positive = Olumlu
+board.negative = Eleştiriler

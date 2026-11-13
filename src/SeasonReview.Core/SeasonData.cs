@@ -16,7 +16,7 @@ namespace SeasonReview
     internal sealed class MatchResult
     {
         public DateTime? Date;
-        public string Competition, Stage, Opponent, Score;
+        public string Competition, Opponent, Score;
         public bool Home, Friendly, League;
         public int GoalsFor, GoalsAgainst;
         public char Outcome => GoalsFor > GoalsAgainst ? 'W' : GoalsFor < GoalsAgainst ? 'L' : 'D';
@@ -24,7 +24,8 @@ namespace SeasonReview
 
     internal sealed class CupRun
     {
-        public string Competition, LastStage, LastResult, BoardView;
+        public string Competition, BoardView;
+        public MatchResult LastMatch;
         public int Played, Won, Drawn, Lost;
     }
 
@@ -73,6 +74,7 @@ namespace SeasonReview
         public string LeaguePositionText;
         public LeagueRecord Total, Home, Away;
         public int LongestWinningRun, LongestUnbeatenRun;
+        public MatchResult BiggestWin, HeaviestDefeat; // competitive matches only
         public int LeagueFixturesRemaining;
         public List<MatchResult> Matches = new();
         public List<CupRun> Cups = new();
@@ -211,6 +213,13 @@ namespace SeasonReview
                 });
             }
 
+            data.Matches = data.Matches.OrderBy(m => m.Date ?? DateTime.MaxValue).ToList();
+            var competitive = data.Matches.Where(m => !m.Friendly).ToList();
+            data.BiggestWin = competitive.Where(m => m.Outcome == 'W')
+                .OrderByDescending(m => m.GoalsFor - m.GoalsAgainst).ThenByDescending(m => m.GoalsFor).FirstOrDefault();
+            data.HeaviestDefeat = competitive.Where(m => m.Outcome == 'L')
+                .OrderByDescending(m => m.GoalsAgainst - m.GoalsFor).ThenByDescending(m => m.GoalsAgainst).FirstOrDefault();
+
             var leagueMatches = data.Matches.Where(m => m.League).ToList();
             data.Home = Tally(leagueMatches.Where(m => m.Home));
             data.Away = Tally(leagueMatches.Where(m => !m.Home));
@@ -229,8 +238,7 @@ namespace SeasonReview
                     Won = group.Count(m => m.Outcome == 'W'),
                     Drawn = group.Count(m => m.Outcome == 'D'),
                     Lost = group.Count(m => m.Outcome == 'L'),
-                    LastStage = last.Stage,
-                    LastResult = $"{last.Opponent} ({(last.Home ? "H" : "A")}) {last.GoalsFor}-{last.GoalsAgainst}",
+                    LastMatch = last,
                 });
             }
         }

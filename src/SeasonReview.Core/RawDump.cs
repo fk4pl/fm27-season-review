@@ -6,21 +6,14 @@ using System.Text;
 namespace SeasonReview
 {
     /// <summary>Writes everything that was read as plain text, for checking the data sources.</summary>
-    internal static class DraftWriter
+    internal static class RawDump
     {
-        public static string DefaultFolder()
-        {
-            // Inside Proton this resolves to C:\users\steamuser\Documents in the game's prefix.
-            var documents = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
-            return Path.Combine(documents, "Sports Interactive", "Football Manager 27", "SeasonReviews");
-        }
-
         public static string Write(GameRecord data, string folder)
         {
             Directory.CreateDirectory(folder);
-            var path = Path.Combine(folder, "draft-raw.txt");
+            var path = Path.Combine(folder, "raw-data.txt");
             var text = new StringBuilder();
-            text.AppendLine("Season Review: raw data draft (" + DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss") + ")");
+            text.AppendLine("Season Review: raw data (" + DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss") + ")");
             text.AppendLine();
             Append(text, data, 0);
             File.WriteAllText(path, text.ToString(), new UTF8Encoding(false));

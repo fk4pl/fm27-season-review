@@ -38,11 +38,9 @@ namespace SeasonReview
         private static int _dumpIndex;
 
         /// <summary>Returns the binding tree, or null (with a warning) when no game is loaded.</summary>
-        public static Bindings Run() => Run(false);
-
         public static Bindings Run(bool dump)
         {
-            Plugin.L.LogInfo("---- Season Review: hotkey pressed ----");
+            Plugin.L.LogInfo("---- Season Review: discovery probe ----");
 
 
             Bindings bindings = null;
@@ -58,7 +56,7 @@ namespace SeasonReview
                 return null;
             }
 
-            if (!dump && !Plugin.ProbeDump.Value) return bindings;
+            if (!dump) return bindings;
 
             var dir = Path.Combine(BepInEx.Paths.BepInExRootPath, "SeasonReview");
             Directory.CreateDirectory(dir);

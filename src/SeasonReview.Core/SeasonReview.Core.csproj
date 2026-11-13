@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- Game-independent code: data model, report text and rendering. No game or BepInEx
+       references here, so it can be unit tested on any machine. The plugin compiles these
+       same files into its own single DLL. -->
+  <PropertyGroup>
+    <TargetFramework>net6.0</TargetFramework>
+    <RootNamespace>SeasonReview</RootNamespace>
+    <LangVersion>latest</LangVersion>
+    <Nullable>disable</Nullable>
+    <CheckEolTargetFramework>false</CheckEolTargetFramework>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="SeasonReview.Tests" />
+  </ItemGroup>
+
+</Project>
