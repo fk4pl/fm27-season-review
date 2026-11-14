@@ -109,7 +109,8 @@ arayın.
 
 Normal şekilde oynayın. Kulübünüzün sezonun son lig maçından sonra rapor bir kez yazılır. Sezonun
 o ana kadarki bölümü için ara rapor almak isterseniz, yüklü bir kariyerde **Ctrl+F8**'e basın ve
-20-40 saniye bekleyin (oyun bu sırada kullanılabilir). Varsayılan kısayol, FM View Exporter ve
+20-40 saniye bekleyin (oyun bu sırada kullanılabilir). Tuş `Hotkey` ayarıyla değiştirilebilir, bkz.
+[Kısayol çakışmaları](#kısayol-çakışmaları). Varsayılan kısayol, FM View Exporter ve
 FM27 Player Export'un kullandığı F9 ile çakışmaz.
 
 Raporlar `Documents/Sports Interactive/Football Manager 27/SeasonReviews/` klasörüne kaydedilir:
@@ -125,19 +126,20 @@ kısa süre öncesine kadar tatile çıkın, sonra devam edin.
 
 ## Oyun içi panel
 
-Yüklü bir kariyerde **F10**'a basarak sezon değerlendirmesini oyunun içinde görebilirsiniz. Panel,
-o an yüklü olan kariyerin canlı verilerini okur (önce birkaç saniye "Sezon verileri okunuyor..."
-yazar) ve HTML dosyasının oluşturulduğu raporun aynısını, `Language` ayarındaki dilde kurar. Yedi
-sekmesi var: Özet, Lig, Oyuncular, Transferler, Finans, Sakatlıklar ve Yönetim. Kapat düğmesiyle,
-**Esc** ile ya da yeniden **F10** ile kapanır. Ana menüde, kariyer yüklü değilken, yüklü bir kariyer
-olmadığını söyler.
+Yüklü bir kariyerde **F10**'a (`PanelHotkey` ayarıyla değiştirilebilir, bkz. [Kısayol
+çakışmaları](#kısayol-çakışmaları)) basarak sezon değerlendirmesini oyunun içinde görebilirsiniz.
+Panel, o an yüklü olan kariyerin canlı verilerini okur (önce birkaç saniye "Sezon verileri
+okunuyor..." yazar) ve HTML dosyasının oluşturulduğu raporun aynısını, `Language` ayarındaki dilde
+kurar. Yedi sekmesi var: Özet, Lig, Oyuncular, Transferler, Finans, Sakatlıklar ve Yönetim. Kapat
+düğmesiyle, **Esc** ile ya da yeniden **F10** ile kapanır. Ana menüde, kariyer yüklü değilken, yüklü
+bir kariyer olmadığını söyler.
 
-> Önce oyun penceresine tıklayın, sonra F10'a basın. Tuş yalnızca oyun penceresi odaktayken
-> çalışır.
+> Önce oyun penceresine tıklayın, sonra F10'a (ya da kendi `PanelHotkey` tuşunuza) basın. Tuş
+> yalnızca oyun penceresi odaktayken çalışır.
 
 Panel bir ektir. Asıl çıktı HTML ve Markdown rapor olmaya devam eder ve eskisi gibi yazılır; panel
-diske hiçbir şey yazmaz (ne raporları ne de raporu yazılmış sezonların listesini). Ctrl+F8 ve
-otomatik rapor, panel açıkken ya da yüklenirken de çalışır.
+diske hiçbir şey yazmaz (ne raporları ne de raporu yazılmış sezonların listesini). Rapor kısayolu
+(varsayılan Ctrl+F8) ve otomatik rapor, panel açıkken ya da yüklenirken de çalışır.
 
 Panel kendi katmanını oyunun üstüne çizer. Oyunun ekranlarını ya da kayıtlarınızı asla
 değiştirmez; bir hatayla karşılaşırsa raporları etkilemeden oturumun geri kalanında kendini
@@ -164,6 +166,19 @@ baştaki nota bakın.
 Raporu yazılmış sezonlar `BepInEx/config/io.github.seasonreview.fm27.reported.txt` dosyasında
 tutulur. O sezon için otomatik raporu yeniden istiyorsanız ilgili satırı silin.
 
+## Kısayol çakışmaları
+
+Modun tuşlarından biri oyun, sisteminiz ya da başka bir mod tarafından kullanılıyorsa
+`BepInEx/config/io.github.seasonreview.fm27.cfg` dosyasından değiştirin:
+
+- `[General]` bölümünde `Hotkey` (varsayılan `Ctrl+F8`): ara rapor
+- `[Panel]` bölümünde `PanelHotkey` (varsayılan `F10`): oyun içi paneli açar ve kapatır
+
+Biçim: `[Ctrl+][Shift+][Alt+]<F1-F24, A-Z veya 0-9>`, örneğin `Hotkey = Ctrl+Shift+F9`. Dosyayı
+oyun kapalıyken düzenleyin: BepInEx dosyayı oyun açılırken okur, bu yüzden oyun çalışırken
+kaydedilen değişiklikler bir sonraki açılışta geçerli olur. Geçersiz bir değer BepInEx günlüğünde
+bir uyarıyla yok sayılır ve varsayılan tuş kullanılır.
+
 ## Bilinen sınırlar
 
 - **Windows:** Linux'ta (Proton) geliştirildi ve test edildi. Diğer FM27 eklentileriyle aynı BepInEx
@@ -175,7 +190,7 @@ tutulur. O sezon için otomatik raporu yeniden istiyorsanız ilgili satırı sil
 - **Tatille sezon sonunu geçerseniz rapor kaçabilir.** Mod, oyun boştayken her oyun günü bir kez
   kontrol yapar. Son lig maçından önceden yeni sezona kadar oyun hiç durmadan tatildeyseniz sezon,
   kontrol çalışmadan değişebilir ve o sezonun raporu yazılmaz. Tatili sezon bitmeden sonlandırın ya
-  da son lig maçından sonra Ctrl+F8'e basın.
+  da son lig maçından sonra Ctrl+F8'e (ya da kendi `Hotkey` tuşunuza) basın.
 - **Kupa tur adları gösterilmez.** Kupa satırlarında döküm ve son maç var, tur ("yarı final" vb.)
   yok.
 - **"Sakatlık nedeniyle kaçırılan maç" toplamı yok.** Oyunda böyle bir değer yok; raporda sakatlık

@@ -107,8 +107,9 @@ To check it works, look for `Season Review 0.2.0 loaded` in `BepInEx/LogOutput.l
 
 Play as usual. After your club's last league match of the season, the report is written once.
 To get an interim report for the season so far, press **Ctrl+F8** in a loaded career and wait
-about 20-40 seconds (the game stays usable). The default hotkey avoids F9, which FM View Exporter
-and FM27 Player Export use.
+about 20-40 seconds (the game stays usable). The key can be changed with the `Hotkey` setting, see
+[Hotkey conflicts](#hotkey-conflicts). The default hotkey avoids F9, which FM View Exporter and
+FM27 Player Export use.
 
 Reports are saved to `Documents/Sports Interactive/Football Manager 27/SeasonReviews/`:
 
@@ -123,20 +124,21 @@ the last league match, then continue.
 
 ## In-game panel
 
-Press **F10** in a loaded career to see the season review inside the game. The panel reads the
-live data of the career that is loaded right now (it shows "Reading season data..." for a few
-seconds first) and builds the same report the HTML file is made from, in the language set by
-`Language`. It has seven tabs: Summary, League, Players, Transfers, Finances, Injuries and Board.
-Close it with its Close button, **Esc** or **F10** again. In the main menu, without a career, it
-says that no career is loaded.
+Press **F10** (changeable with the `PanelHotkey` setting, see [Hotkey conflicts](#hotkey-conflicts))
+in a loaded career to see the season review inside the game. The panel reads the live data of the
+career that is loaded right now (it shows "Reading season data..." for a few seconds first) and
+builds the same report the HTML file is made from, in the language set by `Language`. It has seven
+tabs: Summary, League, Players, Transfers, Finances, Injuries and Board. Close it with its Close
+button, **Esc** or **F10** again. In the main menu, without a career, it says that no career is
+loaded.
 
-> Click into the game window first, then press F10. The key only works while the game window
-> has the focus.
+> Click into the game window first, then press F10 (or your `PanelHotkey`). The key only works
+> while the game window has the focus.
 
 The panel is an extra. The HTML and Markdown report remain the main output and are written
 exactly as before; the panel never writes anything to disk (not the reports and not the list of
-reported seasons). Ctrl+F8 and the automatic report also work while the panel is open or
-loading.
+reported seasons). The report hotkey (Ctrl+F8 by default) and the automatic report also work while
+the panel is open or loading.
 
 The panel draws its own overlay on top of the game. It never changes the game's screens or your
 saves, and if it ever hits an error it switches itself off for the rest of the session without
@@ -164,6 +166,19 @@ Seasons that already have a report are listed in
 `BepInEx/config/io.github.seasonreview.fm27.reported.txt`. Delete a line there to allow the
 automatic report for that season again.
 
+## Hotkey conflicts
+
+If one of the mod's keys is already used by the game, your system or another mod, change it in
+`BepInEx/config/io.github.seasonreview.fm27.cfg`:
+
+- `Hotkey` in `[General]` (default `Ctrl+F8`): interim report
+- `PanelHotkey` in `[Panel]` (default `F10`): open and close the in-game panel
+
+Format: `[Ctrl+][Shift+][Alt+]<F1-F24, A-Z or 0-9>`, e.g. `Hotkey = Ctrl+Shift+F9`. Edit the file
+while the game is closed: BepInEx reads it when the game starts, so changes saved while the game is
+running take effect on the next start. An invalid value is ignored with a warning in the BepInEx
+log, and the default key is used.
+
 ## Known limitations
 
 - **Windows:** developed and tested on Linux (Proton). It uses the same BepInEx IL2CPP setup as
@@ -175,8 +190,8 @@ automatic report for that season again.
 - **Holidaying past the end of the season can miss the report.** The mod checks once per in-game
   day while the game is idle. If you holiday from before the last league match into the next
   season without the game ever pausing, the season can roll over before the check runs, and that
-  season gets no report. Stop the holiday before the season ends, or press Ctrl+F8 after the last
-  league match.
+  season gets no report. Stop the holiday before the season ends, or press Ctrl+F8 (or your
+  `Hotkey`) after the last league match.
 - **Cup round names are not shown.** Cup lines give the record and the last match, not the round
   ("semi-final" and so on).
 - **No "matches missed through injury" total.** The game has no such figure; the report gives the

@@ -70,7 +70,7 @@ namespace SeasonReview
                 _reader.Tick();
                 if (_reader.Busy)
                 {
-                    // Busy for the panel: still watch Ctrl+F8, so the report is not lost and goes next.
+                    // Busy for the panel: still watch the report hotkey, so the report is not lost and goes next.
                     _turns.WhileBusy(_panelRead != null && _panelRead.InFlight, _hotkey.PressedThisFrame);
                     return;
                 }

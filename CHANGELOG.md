@@ -5,6 +5,11 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Documentation
+
+- README: a "Hotkey conflicts" section on changing `Hotkey` (Ctrl+F8) and `PanelHotkey` (F10), and
+  notes where the keys are mentioned that both can be changed in the config.
+
 ### Planned
 
 - Season-end check during holidays: run the once-a-day season check while the game is processing a

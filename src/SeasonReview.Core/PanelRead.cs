@@ -109,8 +109,8 @@ namespace SeasonReview
     }
 
     /// <summary>
-    /// Who may use the single game reader next. Reports (Ctrl+F8 and the automatic season-end
-    /// report) always go before the panel:
+    /// Who may use the single game reader next. Reports (the report hotkey and the automatic
+    /// season-end report) always go before the panel:
     ///  - a panel request only waits here; it starts on a frame where the reader is idle and the
     ///    report sources have already had their turn on that same frame;
     ///  - a report key pressed while the reader is busy reading for the panel is remembered and
