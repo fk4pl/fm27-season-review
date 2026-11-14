@@ -160,6 +160,21 @@ board.board.negative = Board: concerns
 board.supporters.positive = Supporters: positives
 board.supporters.negative = Supporters: concerns
 
+# In-game panel (PanelHotkey, F10 by default). Tab names should be short.
+panel.title = Season Review
+panel.close = Close
+panel.loading = Loading the season data...
+panel.nocareer = No career is loaded. Load a save, then press the panel key again.
+panel.noclub = No club or season found. The season review needs a manager who is employed by a club.
+panel.failed = The season data could not be read. Close the panel and try again in a moment.
+panel.tab.summary = Summary
+panel.tab.league = League
+panel.tab.players = Players
+panel.tab.transfers = Transfers
+panel.tab.finances = Finances
+panel.tab.injuries = Injuries
+panel.tab.board = Board
+
 # Game-text dictionary (optional): translate text that the game gives in its own language.
 #   objective: <board objective as the game writes it> = <translation>
 #   injury: <injury as the game writes it> = <translation>

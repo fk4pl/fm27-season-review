@@ -170,6 +170,21 @@ board.board.negative = Yönetim: eleştiriler
 board.supporters.positive = Taraftarlar: olumlu
 board.supporters.negative = Taraftarlar: eleştiriler
 
+# Oyun içi panel (PanelHotkey, varsayılan F10). Sekme adları kısa olmalı.
+panel.title = Sezon Değerlendirmesi
+panel.close = Kapat
+panel.loading = Sezon verileri okunuyor...
+panel.nocareer = Yüklü bir kariyer yok. Bir kayıt yükleyip panel tuşuna yeniden basın.
+panel.noclub = Kulüp veya sezon bulunamadı. Sezon değerlendirmesi için bir kulüpte görevli bir menajer gerekir.
+panel.failed = Sezon verileri okunamadı. Paneli kapatıp biraz sonra yeniden deneyin.
+panel.tab.summary = Özet
+panel.tab.league = Lig
+panel.tab.players = Oyuncular
+panel.tab.transfers = Transferler
+panel.tab.finances = Finans
+panel.tab.injuries = Sakatlıklar
+panel.tab.board = Yönetim
+
 # ---------------------------------------------------------------------------------------
 # Oyun metni sözlüğü: oyunun İngilizce verdiği metinleri çevirir. Topluluk genişletebilir.
 #   objective: <oyundaki yönetim hedefi> = <çeviri>
