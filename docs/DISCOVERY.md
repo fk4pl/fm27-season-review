@@ -384,9 +384,9 @@ stop clicks from reaching the game (the game uses the Input System). IMGUI was d
   7. Use inline styles only. `StyleLength`, `StyleColor` and `StyleFloat` are value types;
      `StyleEnum<T>`, `FontDefinition` and `StyleFontDefinition` are generated as classes.
 - Generic style values (`StyleEnum<FlexDirection>`, `<WhiteSpace>`, `<TextAnchor>`, `<Overflow>`)
-  exist only per enum in the build and cannot be checked statically. The first three were confirmed
-  in game by the panel's log line; with `Overflow` added the tables fit the panel. The panel tries
-  each once and falls back to a simpler layout if one fails.
+  exist only per enum in the build and cannot be checked statically. All four were confirmed in
+  game by the panel's log line ("rows side by side, wrapping on, clipping on, right-aligned numbers
+  on"). The panel tries each once and falls back to a simpler layout if one fails.
 - `ScrollView(ScrollViewMode.Vertical)` with `horizontalScrollerVisibility = Hidden` and a content
   container fixed to 100% width keeps tables inside the panel; cells get percentage widths with
   `minWidth 0` so long text wraps instead of widening the row.
