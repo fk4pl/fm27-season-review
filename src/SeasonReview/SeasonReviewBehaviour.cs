@@ -45,6 +45,11 @@ namespace SeasonReview
         private readonly Il2CppSystem.Object _owner; // owns the game-side subscriptions
         private string _lastLoggedStatus;
 
+        // In-game panel: its read shares the reader but never the report path below.
+        private readonly ReaderTurns _turns = new ReaderTurns();
+        private PanelRead _panelRead;
+        private Action<PanelModel> _panelShow;
+
         public SeasonController(Il2CppSystem.Object owner) => _owner = owner;
 
         public void Update()
@@ -53,19 +58,27 @@ namespace SeasonReview
             {
                 ParseHotkeys();
                 _reader.Tick();
-                if (_reader.Busy) return;
+                if (_reader.Busy)
+                {
+                    // Busy for the panel: still watch Ctrl+F8, so the report is not lost and goes next.
+                    _turns.WhileBusy(_panelRead != null && _panelRead.InFlight, _hotkey.PressedThisFrame);
+                    return;
+                }
 
                 if (_probeHotkey != null && _probeHotkey.PressedThisFrame())
                 {
                     Probe.Run(true);
                     return;
                 }
-                if (_hotkey.PressedThisFrame())
+                if (_turns.ReportTurn(_hotkey.PressedThisFrame))
                 {
                     StartHotkeyReport();
                     return;
                 }
                 if (Plugin.AutoReport.Value) WatchSeason();
+
+                // Reports had their turn on this frame; a waiting panel read may use an idle reader.
+                if (_turns.PanelTurn(_reader.Busy)) StartPanelRead();
             }
             catch (Exception e)
             {
@@ -89,6 +102,47 @@ namespace SeasonReview
             if (Plugin.ProbeHotkey.Value && !_hotkey.Shift && Hotkey.TryParse("Shift+" + _hotkey, out var probe))
                 _probeHotkey = probe;
             Plugin.L.LogInfo($"Hotkey: {_hotkey}" + (_probeHotkey != null ? $", discovery probe: {_probeHotkey}" : ""));
+        }
+
+        // ── In-game panel ──────────────────────────────────────────────────
+
+        /// <summary>
+        /// The panel asks for a fresh read of the loaded career. It waits until the reader is idle
+        /// and no report wants it (see <see cref="ReaderTurns"/>); the result, or a message such
+        /// as "no career loaded", goes to <paramref name="show"/>. Nothing is written.
+        /// </summary>
+        public void RequestPanelRead(Action<PanelModel> show)
+        {
+            _panelRead?.Abandon(); // an older read, if still running, ends quietly
+            _panelShow = show;
+            _turns.RequestPanel();
+        }
+
+        /// <summary>The panel was closed: drop a waiting request and let a running read end quietly.</summary>
+        public void CancelPanelRead()
+        {
+            _turns.CancelPanel();
+            _panelRead?.Abandon();
+            _panelShow = null;
+        }
+
+        private void StartPanelRead()
+        {
+            var show = _panelShow;
+            if (show == null) return;
+            try
+            {
+                var bindings = GameReader.TryGetBindings();
+                _panelRead = new PanelRead(
+                    (spec, done) => bindings != null && _reader.Start(bindings, _owner, spec, done),
+                    Plugin.LoadStrings, Money, Plugin.Version, show, message => Plugin.L.LogWarning(message));
+                _panelRead.Start();
+            }
+            catch (Exception e)
+            {
+                // Never let the panel disturb the report path that shares this update.
+                Plugin.L.LogWarning($"Panel read could not start: {e.Message}");
+            }
         }
 
         // ── Season-end watch ───────────────────────────────────────────────
