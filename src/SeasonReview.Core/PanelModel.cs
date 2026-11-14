@@ -71,6 +71,15 @@ namespace SeasonReview
     {
         /// <summary>Widest and narrowest a table column may get, measured in characters, before scaling to percent.</summary>
         internal const int MinColumnChars = 5, MaxColumnChars = 42;
+        /// <summary>Characters added to every column for its left and right padding.</summary>
+        internal const int ColumnPaddingChars = 2;
+        /// <summary>
+        /// About how many characters fit across one table row in the panel. A table that needs
+        /// more gives the room to its number columns first; its text columns share the rest and wrap.
+        /// </summary>
+        internal const int LineChars = 94;
+        /// <summary>Widths are whole multiples of 1/64 percent: exact as floats, so a row can be added up without rounding error.</summary>
+        internal const float WidthStep = 1f / 64f;
         /// <summary>Share of the row given to the label of a label/value pair.</summary>
         internal const float KeyWidth = 45f;
 
@@ -160,7 +169,7 @@ namespace SeasonReview
 
             var cells = new List<string[]> { Fit(table.Headers, columns) };
             foreach (var row in table.Rows) cells.Add(Fit(row, columns));
-            var widths = ColumnWidths(cells, columns);
+            var widths = ColumnWidths(cells, columns, numeric);
 
             for (int r = 0; r < cells.Count; r++)
                 rows.Add(new PanelRow
@@ -174,22 +183,42 @@ namespace SeasonReview
         }
 
         /// <summary>
-        /// Column widths in percent from the longest text in each column. Lengths are clamped so
-        /// one long sentence cannot starve the other columns and a one-digit column stays readable.
+        /// Column widths in percent of the row, from the longest text in each column. The widths
+        /// of a row never add up to more than 100: each is rounded down to <see cref="WidthStep"/>,
+        /// and a cell's padding is drawn inside its width, not added to it.
+        ///
+        /// Lengths are clamped so one long sentence cannot starve the other columns and a
+        /// one-digit column stays readable. When a table needs more than <see cref="LineChars"/>,
+        /// only the text columns give way (they wrap); number columns keep the room they need.
         /// </summary>
-        internal static float[] ColumnWidths(List<string[]> rows, int columns)
+        internal static float[] ColumnWidths(List<string[]> rows, int columns, bool[] numeric = null)
         {
             var widths = new float[columns];
             if (columns == 0) return widths;
-            float total = 0f;
+
+            const float narrowest = MinColumnChars + ColumnPaddingChars;
+            var chars = new double[columns];
+            double numbers = 0, text = 0;
+            int textColumns = 0;
             for (int c = 0; c < columns; c++)
             {
                 int longest = 0;
                 foreach (var row in rows) longest = Math.Max(longest, row[c].Length);
-                widths[c] = Math.Min(Math.Max(longest, MinColumnChars), MaxColumnChars) + 2; // + padding
-                total += widths[c];
+                chars[c] = Math.Min(Math.Max(longest, MinColumnChars), MaxColumnChars) + ColumnPaddingChars;
+                if (numeric != null && c < numeric.Length && numeric[c]) numbers += chars[c];
+                else { text += chars[c]; textColumns++; }
             }
-            for (int c = 0; c < columns; c++) widths[c] = widths[c] / total * 100f;
+
+            double room = LineChars - numbers, least = textColumns * narrowest;
+            if (numbers + text > LineChars && text > least && room >= least)
+                for (int c = 0; c < columns; c++)
+                    if (numeric == null || c >= numeric.Length || !numeric[c])
+                        chars[c] = narrowest + (chars[c] - narrowest) * (room - least) / (text - least);
+
+            double total = 0;
+            foreach (var w in chars) total += w;
+            for (int c = 0; c < columns; c++)
+                widths[c] = (float)(Math.Floor(chars[c] / total * 100.0 / WidthStep) * WidthStep);
             return widths;
         }
 
@@ -258,6 +287,34 @@ namespace SeasonReview
         public const float MaxWidthPercent = 90f, MaxHeightPercent = 85f;
         /// <summary>Gap to the screen edge for corner positions.</summary>
         public const float EdgeGap = 40f;
+
+        /// <summary>Space between the panel's edge and its content, on each side.</summary>
+        public const float BoxPadding = 12f;
+        /// <summary>Space kept free on the right of a tab for the vertical scroll bar.</summary>
+        public const float ScrollBarRoom = 24f;
+        /// <summary>Left and right padding of a table cell, drawn inside the cell's width.</summary>
+        public const float CellPadding = 6f;
+        /// <summary>Size of the text in rows and tables.</summary>
+        public const float TextSize = 15f;
+        /// <summary>A cautious guess at how wide one character is, as a share of the text size (digits and bold capitals included).</summary>
+        public const float CharWidth = 0.6f;
+
+        /// <summary>
+        /// Width of the panel on a screen that is <paramref name="screenWidth"/> reference units
+        /// wide: the normal width, or the allowed share of a narrower screen. (The panel scales
+        /// with the screen, so a 16:9 screen is always 1920 units wide, whatever its resolution;
+        /// only a narrow window gets below the normal width.)
+        /// </summary>
+        public static float WidthOn(float screenWidth) => Math.Min(Width, screenWidth * MaxWidthPercent / 100f);
+
+        /// <summary>Width of a table row inside a panel of the given width: what is left after the panel's padding and the scroll bar.</summary>
+        public static float RowWidth(float panelWidth) => panelWidth - 2f * BoxPadding - ScrollBarRoom;
+
+        /// <summary>Room for text in a cell that gets <paramref name="percent"/> of a row, after its padding.</summary>
+        public static float CellTextWidth(float percent, float panelWidth) => RowWidth(panelWidth) * percent / 100f - 2f * CellPadding;
+
+        /// <summary>Estimated width of a text on one line.</summary>
+        public static float TextWidth(string text) => (text ?? "").Length * TextSize * CharWidth;
 
         public static bool TryParsePosition(string text, out PanelPosition position)
         {

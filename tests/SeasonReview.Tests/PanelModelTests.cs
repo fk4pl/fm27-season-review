@@ -100,7 +100,7 @@ namespace SeasonReview.Tests
             Assert.Equal("second", rows[4].Text);
             Assert.Equal(new[] { "Player of the season", "A. Player", "20 goals" }, rows[5].Cells);
             Assert.Equal(new[] { "Balance", "£1M" }, rows[6].Cells);
-            Assert.Equal(100f, rows[6].Widths.Sum(), 3);
+            PanelWidthTests.AssertFillsTheRow(rows[6].Widths);
             Assert.Equal(new[] { false, true }, rows[6].Numeric);
             Assert.False(rows[6].Alternate);
             Assert.True(rows[7].Alternate);
@@ -124,7 +124,7 @@ namespace SeasonReview.Tests
             Assert.All(rows, r => Assert.Same(rows[0].Widths, r.Widths));
             Assert.All(rows, r => Assert.Equal(new[] { false, true, true }, r.Numeric));
             Assert.Equal(new[] { false, false, true, false }, rows.Select(r => r.Alternate));
-            Assert.Equal(100f, rows[0].Widths.Sum(), 3);
+            PanelWidthTests.AssertFillsTheRow(rows[0].Widths);
             Assert.True(rows[0].Widths[0] > rows[0].Widths[1], "the name column is the widest");
         }
 
@@ -133,10 +133,10 @@ namespace SeasonReview.Tests
         {
             var rows = new List<string[]> { new[] { new string('x', 500), "1", "" } };
             var widths = PanelModelBuilder.ColumnWidths(rows, 3);
-            Assert.Equal(100f, widths.Sum(), 3);
+            PanelWidthTests.AssertFillsTheRow(widths);
             Assert.Equal(widths[1], widths[2], 3);
             float highestRatio = (PanelModelBuilder.MaxColumnChars + 2f) / (PanelModelBuilder.MinColumnChars + 2f);
-            Assert.Equal(highestRatio, widths[0] / widths[1], 3);
+            Assert.Equal(highestRatio, widths[0] / widths[1], 1);
             Assert.True(widths[1] > 5f, "a one-character column still gets a usable share");
             Assert.Empty(PanelModelBuilder.ColumnWidths(rows, 0));
         }
@@ -157,7 +157,7 @@ namespace SeasonReview.Tests
                     if (row.Cells.Length > 1 && row.Kind != PanelRowKind.Highlight)
                     {
                         Assert.Equal(row.Cells.Length, row.Widths.Length);
-                        Assert.Equal(100f, row.Widths.Sum(), 2);
+                        PanelWidthTests.AssertFillsTheRow(row.Widths);
                         Assert.All(row.Widths, w => Assert.True(w > 3f));
                     }
                     if (row.Numeric != null) Assert.Equal(row.Cells.Length, row.Numeric.Length);

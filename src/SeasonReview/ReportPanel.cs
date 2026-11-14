@@ -55,7 +55,10 @@ namespace SeasonReview
         private ScrollView[] _tabViews;
 
         // Found once per session.
-        private bool _stylesProbed, _rows, _wrap, _right, _fontSearched, _haveFont, _loggedHost;
+        private bool _stylesProbed, _rows, _wrap, _right, _clip, _fontSearched, _haveFont, _loggedHost, _loggedLayout;
+        private StyleEnum<Overflow> _hidden;
+        private int _measureIn; // frames until the tab's layout is measured for the log (0 = not waiting)
+        private ScrollView _measureView;
         private StyleEnum<FlexDirection> _rowDirection;
         private StyleEnum<WhiteSpace> _wrapNormal;
         private StyleEnum<TextAnchor> _alignRight;
@@ -87,6 +90,7 @@ namespace SeasonReview
             try
             {
                 ParseHotkey();
+                if (_measureIn > 0 && --_measureIn == 0) LogLayout();
                 if (_hotkey.PressedThisFrame())
                 {
                     if (_open) Guarded("close", () => Close());
@@ -156,6 +160,8 @@ namespace SeasonReview
             _body = null;
             _model = null;
             _tabViews = null;
+            _measureView = null;
+            _measureIn = 0;
             _tabButtons.Clear();
             _handlers.Clear();
         }
@@ -253,7 +259,8 @@ namespace SeasonReview
             s.maxHeight = new StyleLength(Length.Percent(PanelLayout.MaxHeightPercent));
             s.flexShrink = new StyleFloat(0f);
             s.backgroundColor = new StyleColor(BoxBg);
-            Pad(_box, 12f, 10f);
+            if (_clip) s.overflow = _hidden; // nothing is ever drawn outside the panel
+            Pad(_box, PanelLayout.BoxPadding, 10f);
 
             if (!PanelLayout.TryParsePosition(Plugin.PanelPositionText.Value, out var position))
                 Plugin.L.LogWarning($"Invalid PanelPosition '{Plugin.PanelPositionText.Value}', using Center.");
@@ -268,7 +275,7 @@ namespace SeasonReview
             {
                 _loggedHost = true;
                 Plugin.L.LogInfo($"Panel: {how}; position {position}; rows {(_rows ? "side by side" : "as positioned text (fallback)")}, " +
-                                 $"wrapping {(_wrap ? "on" : "unavailable")}, right-aligned numbers {(_right ? "on" : "unavailable")}, " +
+                                 $"wrapping {(_wrap ? "on" : "unavailable")}, clipping {(_clip ? "on" : "unavailable")}, right-aligned numbers {(_right ? "on" : "unavailable")}, " +
                                  $"game font {(_haveFont ? "found" : "not found (theme font)")}.");
             }
         }
@@ -288,6 +295,7 @@ namespace SeasonReview
             _rows = Try(() => { _rowDirection = new StyleEnum<FlexDirection>(FlexDirection.Row); probe.style.flexDirection = _rowDirection; });
             _wrap = Try(() => { _wrapNormal = new StyleEnum<WhiteSpace>(WhiteSpace.Normal); probe.style.whiteSpace = _wrapNormal; });
             _right = Try(() => { _alignRight = new StyleEnum<TextAnchor>(TextAnchor.UpperRight); probe.style.unityTextAlign = _alignRight; });
+            _clip = Try(() => { _hidden = new StyleEnum<Overflow>(Overflow.Hidden); probe.style.overflow = _hidden; });
         }
 
         private static bool Try(Action action)
@@ -406,6 +414,39 @@ namespace SeasonReview
             _tabViews[index] ??= TabView(_model.Tabs[index]); // built the first time the tab is opened
             _body.Clear();
             _body.Add(_tabViews[index]);
+            if (!_loggedLayout)
+            {
+                _measureView = _tabViews[index];
+                _measureIn = 5; // let the layout settle first
+            }
+        }
+
+        /// <summary>
+        /// Writes the measured widths of the open tab to the log, once per session: the proof
+        /// that the content is as wide as the visible area and no wider. Only reads our own elements.
+        /// </summary>
+        private void LogLayout()
+        {
+            try
+            {
+                var view = _measureView;
+                _measureView = null;
+                if (view == null || _box == null) return;
+                float viewport = view.contentViewport.layout.width, content = view.contentContainer.layout.width, widest = 0f;
+                if (float.IsNaN(viewport) || viewport <= 0f) return; // not laid out yet: try again with the next tab
+                var container = view.contentContainer;
+                int count = container.childCount;
+                for (int i = 0; i < count; i++) widest = Math.Max(widest, container.ElementAt(i).layout.xMax);
+                _loggedLayout = true;
+                Plugin.L.LogInfo($"Panel layout: panel {_box.layout.width:0.#} x {_box.layout.height:0.#}, tab area {viewport:0.#} wide, " +
+                                 $"content {content:0.#}, widest row ends at {widest:0.#}" +
+                                 (widest > viewport + 0.5f || content > viewport + 0.5f ? " (WIDER than the tab area)." : " (fits)."));
+            }
+            catch (Exception e)
+            {
+                _loggedLayout = true; // a measurement only: never a reason to disable the panel
+                Plugin.L.LogInfo("Panel layout could not be measured: " + e.Message);
+            }
         }
 
         private VisualElement Tiles(PanelModel model)
@@ -433,8 +474,16 @@ namespace SeasonReview
 
         private ScrollView TabView(PanelTab tab)
         {
-            var view = new ScrollView();
+            // Up and down only. The content is exactly as wide as the visible area, so rows
+            // (whose cells are shares of the row) and wrapped text can never be wider than the panel.
+            var view = new ScrollView(ScrollViewMode.Vertical);
+            view.horizontalScrollerVisibility = ScrollerVisibility.Hidden;
             view.style.flexGrow = new StyleFloat(1f);
+            view.style.minWidth = new StyleLength(0f);
+            var content = view.contentContainer.style;
+            content.width = new StyleLength(Length.Percent(100f));
+            content.maxWidth = new StyleLength(Length.Percent(100f));
+            content.minWidth = new StyleLength(0f);
             view.Add(Spaced(Text(PanelText.Bold(tab.Title), 20f, AccentColor, rich: true), 4f, 6f));
             foreach (var row in tab.Rows) view.Add(Row(row));
             return view;
@@ -473,19 +522,22 @@ namespace SeasonReview
         {
             bool header = row.Kind == PanelRowKind.TableHeader;
             var background = header ? HeadRowBg : row.Alternate ? AltRowBg : (Color?)null;
-            float size = 15f;
+            float size = PanelLayout.TextSize;
 
             if (!_rows)
             {
                 var line = Text(PanelText.PositionedRow(row.Cells, row.Widths, FallbackCharsPerLine, header), size, TextColor, rich: true, wrap: false);
                 if (background.HasValue) line.style.backgroundColor = new StyleColor(background.Value);
-                Pad(line, 6f, 3f);
+                if (_clip) line.style.overflow = _hidden;
+                Pad(line, PanelLayout.CellPadding, 3f);
                 return line;
             }
 
             var element = new VisualElement();
             element.style.flexDirection = _rowDirection;
-            element.style.flexShrink = new StyleFloat(0f);
+            element.style.flexShrink = new StyleFloat(0f); // its height; the width comes from the tab
+            element.style.minWidth = new StyleLength(0f);
+            if (_clip) element.style.overflow = _hidden;
             if (background.HasValue) element.style.backgroundColor = new StyleColor(background.Value);
             if (row.Kind == PanelRowKind.KeyValue) element.style.maxWidth = new StyleLength(Length.Percent(70f));
 
@@ -494,9 +546,15 @@ namespace SeasonReview
                 var cell = header
                     ? Text(PanelText.Bold(row.Cells[i]), size, TextColor, rich: true)
                     : Text(row.Cells[i], size, row.Kind == PanelRowKind.KeyValue && i == 0 ? DimColor : TextColor);
+                // A share of the row (the shares never add up to more than 100, see PanelModelBuilder),
+                // padding inside it. The cell never grows with its text: long text wraps or is cut,
+                // and if the cells were ever too wide together they shrink instead of widening the row.
                 cell.style.width = new StyleLength(Length.Percent(row.Widths[i]));
-                cell.style.flexShrink = new StyleFloat(0f);
-                Pad(cell, 6f, 3f);
+                cell.style.minWidth = new StyleLength(0f);
+                cell.style.flexGrow = new StyleFloat(0f);
+                cell.style.flexShrink = new StyleFloat(1f);
+                if (_clip) cell.style.overflow = _hidden;
+                Pad(cell, PanelLayout.CellPadding, 3f);
                 if (_right && row.Numeric != null && row.Numeric[i]) cell.style.unityTextAlign = _alignRight;
                 element.Add(cell);
             }
