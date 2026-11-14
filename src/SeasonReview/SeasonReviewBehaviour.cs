@@ -11,6 +11,8 @@ namespace SeasonReview
     public class SeasonReviewBehaviour : MonoBehaviour
     {
         private SeasonController _controller;
+        private ReportPanel _panel;
+        private bool _panelCreated;
 
         public SeasonReviewBehaviour(IntPtr ptr) : base(ptr) { }
 
@@ -18,6 +20,14 @@ namespace SeasonReview
         {
             _controller ??= new SeasonController(this);
             _controller.Update();
+
+            // The in-game panel is an extra: it has its own error handling and never throws here.
+            if (!_panelCreated)
+            {
+                _panelCreated = true;
+                _panel = ReportPanel.Create(_controller);
+            }
+            _panel?.Tick();
         }
     }
 

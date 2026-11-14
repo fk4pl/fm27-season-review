@@ -89,6 +89,24 @@ namespace SeasonReview.Tests
             Assert.Empty(Directory.GetFileSystemEntries(_folder));
         }
 
+        /// <summary>The panel's own source files must not even mention the writers or the file system.</summary>
+        [Theory]
+        [InlineData("SeasonReview", "ReportPanel.cs", true)]
+        [InlineData("SeasonReview.Core", "PanelRead.cs", true)]
+        [InlineData("SeasonReview.Core", "PanelModel.cs", false)] // pure data: has no entry points to guard
+        public void PanelSourcesDoNotReferenceTheWriters(string project, string file, bool hasEntryPoints)
+        {
+            var root = new DirectoryInfo(AppContext.BaseDirectory);
+            while (root != null && !Directory.Exists(Path.Combine(root.FullName, "src", "SeasonReview.Core"))) root = root.Parent;
+            Assert.True(root != null, "repository root not found above " + AppContext.BaseDirectory);
+
+            var text = File.ReadAllText(Path.Combine(root.FullName, "src", project, file));
+            foreach (var forbidden in new[] { "ReportFiles", "ReportedSeasons", "RawDump", "Probe.", "StatePath", "ReportFolder",
+                                             "System.IO", "File.", "Directory.", "StreamWriter", "FileStream", "HtmlRenderer", "MarkdownRenderer" })
+                Assert.False(text.Contains(forbidden), $"{file} mentions {forbidden}");
+            if (hasEntryPoints) Assert.Contains("DiskWrites.Forbid(", text); // and its entry points run read-only
+        }
+
         /// <summary>Every source file of the mod that writes to disk must ask DiskWrites first.</summary>
         [Fact]
         public void EveryDiskWriterAsksTheGuard()

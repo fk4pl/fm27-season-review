@@ -37,6 +37,10 @@
 
     <Reference Include="$(BepInExDir)/interop/Il2Cppmscorlib.dll" Private="false" />
     <Reference Include="$(BepInExDir)/interop/UnityEngine.CoreModule.dll" Private="false" />
+    <!-- In-game panel (UI Toolkit; the text modules only for font and alignment types). -->
+    <Reference Include="$(BepInExDir)/interop/UnityEngine.UIElementsModule.dll" Private="false" />
+    <Reference Include="$(BepInExDir)/interop/UnityEngine.TextCoreTextEngineModule.dll" Private="false" />
+    <Reference Include="$(BepInExDir)/interop/UnityEngine.TextRenderingModule.dll" Private="false" />
     <Reference Include="$(BepInExDir)/interop/SI.Core.dll" Private="false" />
     <Reference Include="$(BepInExDir)/interop/SI.Bindable.dll" Private="false" />
     <Reference Include="$(BepInExDir)/interop/SI.Bindable.Reference.Core.dll" Private="false" />
