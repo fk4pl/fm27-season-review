@@ -335,3 +335,82 @@ Not available:
 - Injury names seen: "A sports hernia", "A twisted ankle", "A tight hamstring", "A bruised
   ankle", "A cut leg", "A tight groin", "A tight thigh", "A double hernia", "A hip injury",
   "A moderate calf strain", "A twisted knee".
+
+## 11. In-game panel spike (running game, 27.0.1, Linux/Proton)
+
+Question: can the plugin draw its own panel on top of the game, read-only and without Harmony?
+
+### Unity modules
+
+BepInEx generates 182 interop assemblies. Both UI systems are present:
+`UnityEngine.IMGUIModule` (IMGUI) and `UnityEngine.UIElementsModule` (UI Toolkit). The game's
+own screens use UI Toolkit (`UIDocument` + `PanelSettings`, in `SI.UI`, `FM.UI`, `SI.Input`).
+
+### IMGUI: too much is stripped
+
+FM27 is an IL2CPP build, so engine code the game never calls is stripped. Calling a stripped
+method throws `NotSupportedException: Method unstripping failed`. `OnGUI` is called and mouse and
+scroll events arrive, but drawing window contents failed. Per-call probe in game:
+
+| Works | Stripped (throws) |
+|---|---|
+| `Event.current`, `GUI.skin` (`.label`, `.font`), `GUI.color`, `GUI.contentColor` | `GUI.DrawTexture` |
+| `new GUIStyle()`, `new GUIContent(string)`, `GUIStyle.CalcSize`, `GUIStyle.Draw` | `GUI.TextArea` |
+| `GUI.Label`, `GUI.Box`, `GUI.Button` | `GUI.BeginScrollView` |
+| `GUI.Window` (with its callback), `GUI.DragWindow` | all of `GUILayout` (`Label`, `Button`, `BeginScrollView`) |
+| | `new GUIStyle(GUIStyle)` (copy constructor) |
+
+A panel can be built from the working calls, but without scroll views or layout, and IMGUI cannot
+stop clicks from reaching the game (the game uses the Input System). IMGUI was dropped.
+
+### UI Toolkit: works with an own PanelSettings
+
+- Sharing one of the game's `PanelSettings` does not work: `ShortcutLayerSettings`, the obvious
+  top layer, has no theme, so labels and buttons have no default style and the content is
+  invisible. Of the game's panel settings only `HighlightingLayerSettings` uses Unity's default
+  runtime theme (`UnityDefaultRuntimeTheme`).
+- Working recipe:
+  1. Create an own `PanelSettings` with `ScriptableObject.CreateInstance(Il2CppType.Of<PanelSettings>())`.
+  2. Copy `themeStyleSheet` and `textSettings` from the game's `HighlightingLayerSettings`
+     (read-only; the game's object is not changed).
+  3. Set `scaleMode = ScaleWithScreenSize`, reference resolution 1920x1080, `MatchWidthOrHeight`
+     with `match = 0.5`, and `sortingOrder` above the highest game panel.
+  4. Create an inactive `GameObject`, add a `UIDocument` with `AddComponent(Il2CppType.Of<UIDocument>())`,
+     assign the panel settings, then activate it (`DontDestroyOnLoad`).
+  5. Root `pickingMode = Ignore` (clicks outside the panel go to the game); the panel box
+     `pickingMode = Position` (clicks on it do not go through).
+  6. Take the font from a visible game label: `resolvedStyle.unityFontDefinition`, applied as
+     `new StyleFontDefinition(fd)`.
+  7. Use inline styles only. `StyleLength`, `StyleColor` and `StyleFloat` are value types;
+     `StyleEnum<T>`, `FontDefinition` and `StyleFontDefinition` are generated as classes.
+- Generic style values (`StyleEnum<FlexDirection>`, `<WhiteSpace>`, `<TextAnchor>`, `<Overflow>`)
+  exist only per enum in the build and cannot be checked statically. The first three were confirmed
+  in game by the panel's log line; with `Overflow` added the tables fit the panel. The panel tries
+  each once and falls back to a simpler layout if one fails.
+- `ScrollView(ScrollViewMode.Vertical)` with `horizontalScrollerVisibility = Hidden` and a content
+  container fixed to 100% width keeps tables inside the panel; cells get percentage widths with
+  `minWidth 0` so long text wraps instead of widening the row.
+- Result: opaque, text visible with the game's font (Turkish characters fine), scrolling, tabs and
+  Close work, no click-through. Removing the own `GameObject` and `PanelSettings` leaves the game
+  as it was.
+
+### Static scan method (`tools/InteropScan`)
+
+The interop assemblies show, without starting the game, whether a method can be called. For each
+method body (read with Mono.Cecil):
+
+- contains the string "…unstripping failed": **FAILED** (stripped, throws);
+- references a `NativeMethodInfoPtr_*` field: **NATIVE** (compiled into the game, safe);
+- calls through a delegate field: **ICALL** (engine-internal function);
+- otherwise **MANAGED** (re-created from Unity's reference assemblies), and **BROKEN** if it
+  reaches a FAILED method through its calls.
+
+The scan predicted all 12 IMGUI probe results. It cannot prove generic instantiations
+(`StyleEnum<T>`, `RegisterCallback<T>`) or run-time behaviour; those need a guarded try in game.
+Every UI Toolkit member the panel uses scans as NATIVE or MANAGED.
+
+### Opening the report in a browser does not work under Proton
+
+`Application.OpenURL` (with a `file:///` URL and with a plain path) and starting
+`cmd.exe /c start "" <file>` return without an error but open nothing under Proton. The idea was
+dropped; the in-game panel replaces it.
