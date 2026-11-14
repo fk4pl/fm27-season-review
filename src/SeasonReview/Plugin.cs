@@ -23,6 +23,9 @@ namespace SeasonReview
         internal static ConfigEntry<string> HotkeyText;
         internal static ConfigEntry<bool> ProbeHotkey;
         internal static ConfigEntry<bool> RawDump;
+        internal static ConfigEntry<bool> PanelEnabled;
+        internal static ConfigEntry<string> PanelHotkeyText;
+        internal static ConfigEntry<string> PanelPositionText;
 
         public override void Load()
         {
@@ -42,6 +45,13 @@ namespace SeasonReview
                 "Shift+<Hotkey> writes discovery dumps of the current screen to BepInEx/SeasonReview/ (names only, hidden values skipped). For adapting the mod after game updates.");
             RawDump = Config.Bind("Developer", "RawDump", false,
                 "Also write everything that was read, unformatted, to raw-data.txt next to the reports.");
+
+            PanelEnabled = Config.Bind("Panel", "PanelEnabled", true,
+                "Show the season review inside the game with PanelHotkey. The report files are written as before; the panel is an extra and never writes anything.");
+            PanelHotkeyText = Config.Bind("Panel", "PanelHotkey", "F10",
+                "Opens and closes the in-game panel (Esc also closes it). Same format as Hotkey.");
+            PanelPositionText = Config.Bind("Panel", "PanelPosition", "Center",
+                "Where the panel appears: Center, TopLeft, TopRight, BottomLeft or BottomRight.");
 
             if (!Enabled.Value)
             {
