@@ -117,6 +117,27 @@ On Linux that folder is inside the game's Proton prefix:
 To test without waiting for a season to end, use a throwaway career: holiday to shortly before
 the last league match, then continue.
 
+## In-game panel
+
+Press **F10** in a loaded career to see the season review inside the game. The panel reads the
+live data of the career that is loaded right now (it shows "Reading season data..." for a few
+seconds first) and builds the same report the HTML file is made from, in the language set by
+`Language`. It has seven tabs: Summary, League, Players, Transfers, Finances, Injuries and Board.
+Close it with its Close button, **Esc** or **F10** again. In the main menu, without a career, it
+says that no career is loaded.
+
+> Click into the game window first, then press F10. The key only works while the game window
+> has the focus.
+
+The panel is an extra. The HTML and Markdown report remain the main output and are written
+exactly as before; the panel never writes anything to disk (not the reports and not the list of
+reported seasons). Ctrl+F8 and the automatic report also work while the panel is open or
+loading.
+
+The panel draws its own overlay on top of the game. It never changes the game's screens or your
+saves, and if it ever hits an error it switches itself off for the rest of the session without
+affecting the reports. It was tested on Linux/Proton only; it has not been tested on Windows.
+
 ## Settings
 
 `BepInEx/config/io.github.seasonreview.fm27.cfg` (created on the first start):
@@ -128,6 +149,9 @@ the last league match, then continue.
 | `Language` | `en` | `en` or `tr`, or any code with a matching `lang/<code>.txt`. |
 | `OutputFolder` | empty | Where reports go; empty means the `SeasonReviews` folder above. |
 | `Hotkey` | `Ctrl+F8` | Interim report. Format `[Ctrl+][Shift+][Alt+]<F1-F24, A-Z, 0-9>`. |
+| `PanelEnabled` | `true` | Section `[Panel]`. Turn the in-game panel on or off. |
+| `PanelHotkey` | `F10` | Opens and closes the panel. Same format as `Hotkey`. |
+| `PanelPosition` | `Center` | Where the panel appears: `Center`, `TopLeft`, `TopRight`, `BottomLeft` or `BottomRight`. |
 | `ProbeHotkey` | `false` | Developer: Shift+hotkey dumps property names of the current screen. |
 | `RawDump` | `false` | Developer: also write the unformatted data next to the report. |
 
@@ -184,6 +208,8 @@ scripts/package.sh                                            # builds dist/Seas
 ```
 
 Notes on how the game's data is read are in [docs/DISCOVERY.md](docs/DISCOVERY.md).
+`tools/InteropScan` is a developer tool that shows which Unity methods are stripped from the game
+build (see its README); it is not part of the release.
 
 ## Licence
 

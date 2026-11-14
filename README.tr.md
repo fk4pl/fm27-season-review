@@ -119,6 +119,26 @@ Linux'ta bu klasör oyunun Proton prefix'i içindedir:
 Sezonun bitmesini beklemeden denemek için deneme amaçlı bir kariyer kullanın: son lig maçından
 kısa süre öncesine kadar tatile çıkın, sonra devam edin.
 
+## Oyun içi panel
+
+Yüklü bir kariyerde **F10**'a basarak sezon değerlendirmesini oyunun içinde görebilirsiniz. Panel,
+o an yüklü olan kariyerin canlı verilerini okur (önce birkaç saniye "Sezon verileri okunuyor..."
+yazar) ve HTML dosyasının oluşturulduğu raporun aynısını, `Language` ayarındaki dilde kurar. Yedi
+sekmesi var: Özet, Lig, Oyuncular, Transferler, Finans, Sakatlıklar ve Yönetim. Kapat düğmesiyle,
+**Esc** ile ya da yeniden **F10** ile kapanır. Ana menüde, kariyer yüklü değilken, yüklü bir kariyer
+olmadığını söyler.
+
+> Önce oyun penceresine tıklayın, sonra F10'a basın. Tuş yalnızca oyun penceresi odaktayken
+> çalışır.
+
+Panel bir ektir. Asıl çıktı HTML ve Markdown rapor olmaya devam eder ve eskisi gibi yazılır; panel
+diske hiçbir şey yazmaz (ne raporları ne de raporu yazılmış sezonların listesini). Ctrl+F8 ve
+otomatik rapor, panel açıkken ya da yüklenirken de çalışır.
+
+Panel kendi katmanını oyunun üstüne çizer. Oyunun ekranlarını ya da kayıtlarınızı asla
+değiştirmez; bir hatayla karşılaşırsa raporları etkilemeden oturumun geri kalanında kendini
+kapatır. Yalnızca Linux/Proton'da test edildi; Windows'ta test edilmedi.
+
 ## Ayarlar
 
 `BepInEx/config/io.github.seasonreview.fm27.cfg` (ilk açılışta oluşur):
@@ -130,6 +150,9 @@ kısa süre öncesine kadar tatile çıkın, sonra devam edin.
 | `Language` | `en` | `en` veya `tr`; ya da `lang/<kod>.txt` dosyası olan herhangi bir kod. |
 | `OutputFolder` | boş | Raporların klasörü; boşsa yukarıdaki `SeasonReviews` klasörü. |
 | `Hotkey` | `Ctrl+F8` | Ara rapor. Biçim: `[Ctrl+][Shift+][Alt+]<F1-F24, A-Z, 0-9>`. |
+| `PanelEnabled` | `true` | `[Panel]` bölümü. Oyun içi paneli açar veya kapatır. |
+| `PanelHotkey` | `F10` | Paneli açar ve kapatır. Biçim `Hotkey` ile aynı. |
+| `PanelPosition` | `Center` | Panelin yeri: `Center`, `TopLeft`, `TopRight`, `BottomLeft` veya `BottomRight`. |
 | `ProbeHotkey` | `false` | Geliştirici: Shift+kısayol, açık ekranın özellik adlarını döker. |
 | `RawDump` | `false` | Geliştirici: biçimlendirilmemiş veriyi de raporun yanına yazar. |
 
@@ -184,6 +207,8 @@ scripts/package.sh                                            # dist/SeasonRevie
 ```
 
 Oyun verisinin nasıl okunduğuna dair notlar [docs/DISCOVERY.md](docs/DISCOVERY.md) dosyasında.
+`tools/InteropScan`, oyun derlemesinden hangi Unity metotlarının çıkarıldığını gösteren bir
+geliştirici aracıdır (README'sine bakın); sürüm paketinde yer almaz.
 
 ## Lisans
 
