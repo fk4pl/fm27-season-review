@@ -5,6 +5,17 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Planned
+
+- Season-end check during holidays: run the once-a-day season check while the game is processing a
+  holiday (not during matches), so that holidaying past the last league match into the next season
+  no longer misses the report. Needs testing for performance and stability first.
+
+## [0.2.0] - 2026-11-14
+
+Tested with Football Manager 27.0.1 and BepInEx 6.0.0-be.793 on Linux with Proton.
+Not tested on Windows.
+
 ### Added
 
 - In-game panel: press F10 in a loaded career to see the season review inside the game. It reads
@@ -27,12 +38,6 @@ All notable changes to this project are documented here. The format follows
 
 - Opening the report in the browser from the game. `Application.OpenURL` and `cmd /c start` do
   nothing under Proton, so the idea was dropped in favour of the in-game panel.
-
-### Planned for 0.1.1
-
-- Season-end check during holidays: run the once-a-day season check while the game is processing a
-  holiday (not during matches), so that holidaying past the last league match into the next season
-  no longer misses the report. Needs testing for performance and stability first.
 
 ## [0.1.0] - 2026-11-14
 

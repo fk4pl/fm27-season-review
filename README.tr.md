@@ -11,7 +11,7 @@ Oyunun içinde çalışır, ayrı bir uygulama gerektirmez ve oyun verisini yaln
 dosyalarınıza hiçbir zaman yazmaz ve gizli değerleri (mevcut/potansiyel yetenek, gizli nitelikler,
 sakatlanma eğilimi vb.) hiçbir yerde göstermez.
 
-> **Durum: 0.1.0, erken sürüm.** Yalnızca **Linux'ta Proton ile** test edildi. **Windows'ta test
+> **Durum: 0.2.0, erken sürüm.** Yalnızca **Linux'ta Proton ile** test edildi. **Windows'ta test
 > edilmedi**; eklenti dosyası iki platformda aynıdır.
 
 ## Rapor neleri içeriyor
@@ -98,7 +98,7 @@ Betik eklentiyi kopyalar, BepInEx be.793 eksikse indirip kurmayı önerir (önce
 dosyanın sağlama toplamını kontrol eder) ve başlatma seçeneğini hatırlatır. Kurmadan önce oyunu
 kapatın.
 
-Çalıştığını görmek için `BepInEx/LogOutput.log` içinde `Season Review 0.1.0 loaded` satırını
+Çalıştığını görmek için `BepInEx/LogOutput.log` içinde `Season Review 0.2.0 loaded` satırını
 arayın.
 
 ## Kullanım

@@ -13,7 +13,7 @@ namespace SeasonReview
     {
         public const string Guid = "io.github.seasonreview.fm27";
         public const string Name = "Season Review";
-        public const string Version = "0.1.0";
+        public const string Version = "0.2.0";
 
         internal static ManualLogSource L;
         internal static ConfigEntry<bool> Enabled;

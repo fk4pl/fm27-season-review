@@ -11,7 +11,7 @@ It runs inside the game, needs no companion app, and only **reads** game data. I
 to your save files and never shows hidden values (current/potential ability, hidden attributes,
 injury proneness and the like).
 
-> **Status: 0.1.0, early release.** Tested only on **Linux with Proton**. It has **not been
+> **Status: 0.2.0, early release.** Tested only on **Linux with Proton**. It has **not been
 > tested on Windows**, although the plugin is the same file on both.
 
 ## What the report contains
@@ -97,7 +97,7 @@ The installer copies the plugin, can download and install BepInEx be.793 if it i
 asks first and checks the download's checksum), and reminds you of the launch option. Close the
 game before installing.
 
-To check it works, look for `Season Review 0.1.0 loaded` in `BepInEx/LogOutput.log`.
+To check it works, look for `Season Review 0.2.0 loaded` in `BepInEx/LogOutput.log`.
 
 ## Usage
 
