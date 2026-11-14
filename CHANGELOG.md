@@ -5,6 +5,29 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Added
+
+- In-game panel: press F10 in a loaded career to see the season review inside the game. It reads
+  the live data of the loaded career and shows the same report as the HTML file in seven tabs
+  (Summary, League, Players, Transfers, Finances, Injuries, Board), in the configured language.
+  Closes with its Close button, Esc or F10. It is an extra: the HTML and Markdown report are
+  written exactly as before, also while the panel is open or loading. It draws its own UI Toolkit
+  overlay, changes no game screen and switches itself off for the session after its first error.
+  Tested on Linux/Proton only.
+- Settings in a new `[Panel]` section: `PanelEnabled` (default `true`), `PanelHotkey` (default
+  `F10`) and `PanelPosition` (`Center`, `TopLeft`, `TopRight`, `BottomLeft`, `BottomRight`;
+  default `Center`).
+- Disk-write guard: every file the mod writes (reports, the list of reported seasons, developer
+  dumps) checks a guard first, and the panel runs with writes forbidden, so it cannot write a
+  report or mark a season as reported. Report writes are never blocked by the panel.
+- `tools/InteropScan`, a developer tool that lists which Unity methods are stripped from the game
+  build. Not part of the release package.
+
+### Dropped
+
+- Opening the report in the browser from the game. `Application.OpenURL` and `cmd /c start` do
+  nothing under Proton, so the idea was dropped in favour of the in-game panel.
+
 ### Planned for 0.1.1
 
 - Season-end check during holidays: run the once-a-day season check while the game is processing a
