@@ -11,8 +11,12 @@ It runs inside the game, needs no companion app, and only **reads** game data. I
 to your save files and never shows hidden values (current/potential ability, hidden attributes,
 injury proneness and the like).
 
-> **Status: 0.2.0, early release.** Tested only on **Linux with Proton**. It has **not been
-> tested on Windows**, although the plugin is the same file on both.
+> **Status: 0.2.0, early release.**
+>
+> **Windows:** developed and tested on Linux (Proton). It uses the same BepInEx IL2CPP setup as
+> other FM27 plugins, so it should work on Windows too, but I have not been able to test it there
+> yet. If you try it, please report how it went in Issues, and confirmed setups will be listed
+> here.
 
 ## What the report contains
 
@@ -136,7 +140,8 @@ loading.
 
 The panel draws its own overlay on top of the game. It never changes the game's screens or your
 saves, and if it ever hits an error it switches itself off for the rest of the session without
-affecting the reports. It was tested on Linux/Proton only; it has not been tested on Windows.
+affecting the reports. Like the rest of the mod it was developed and tested on Linux (Proton);
+see the Windows note at the top.
 
 ## Settings
 
@@ -161,7 +166,9 @@ automatic report for that season again.
 
 ## Known limitations
 
-- **Tested on Linux/Proton only.** Not tested on Windows.
+- **Windows:** developed and tested on Linux (Proton). It uses the same BepInEx IL2CPP setup as
+  other FM27 plugins, so it should work on Windows too, but I have not been able to test it there
+  yet. If you try it, please report how it went in Issues, and confirmed setups will be listed here.
 - **Game updates can break the mod.** FM27 has no modding API; the mod reads the game's internal
   UI data, which can change with any patch. Sections that cannot be read show "Data unavailable"
   instead of crashing, but a patch may need a new release.

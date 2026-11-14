@@ -11,8 +11,12 @@ Oyunun içinde çalışır, ayrı bir uygulama gerektirmez ve oyun verisini yaln
 dosyalarınıza hiçbir zaman yazmaz ve gizli değerleri (mevcut/potansiyel yetenek, gizli nitelikler,
 sakatlanma eğilimi vb.) hiçbir yerde göstermez.
 
-> **Durum: 0.2.0, erken sürüm.** Yalnızca **Linux'ta Proton ile** test edildi. **Windows'ta test
-> edilmedi**; eklenti dosyası iki platformda aynıdır.
+> **Durum: 0.2.0, erken sürüm.**
+>
+> **Windows:** Linux'ta (Proton) geliştirildi ve test edildi. Diğer FM27 eklentileriyle aynı
+> BepInEx IL2CPP altyapısını kullanıyor, bu yüzden Windows'ta da çalışması beklenir, ama orada
+> henüz deneyemedim. Denerseniz Issues'ta nasıl gittiğini yazın, doğrulanan kurulumlar buraya
+> eklenecek.
 
 ## Rapor neleri içeriyor
 
@@ -137,7 +141,8 @@ otomatik rapor, panel açıkken ya da yüklenirken de çalışır.
 
 Panel kendi katmanını oyunun üstüne çizer. Oyunun ekranlarını ya da kayıtlarınızı asla
 değiştirmez; bir hatayla karşılaşırsa raporları etkilemeden oturumun geri kalanında kendini
-kapatır. Yalnızca Linux/Proton'da test edildi; Windows'ta test edilmedi.
+kapatır. Modun geri kalanı gibi Linux'ta (Proton) geliştirildi ve test edildi; Windows için
+baştaki nota bakın.
 
 ## Ayarlar
 
@@ -161,7 +166,9 @@ tutulur. O sezon için otomatik raporu yeniden istiyorsanız ilgili satırı sil
 
 ## Bilinen sınırlar
 
-- **Yalnızca Linux/Proton'da test edildi.** Windows'ta test edilmedi.
+- **Windows:** Linux'ta (Proton) geliştirildi ve test edildi. Diğer FM27 eklentileriyle aynı BepInEx
+  IL2CPP altyapısını kullanıyor, bu yüzden Windows'ta da çalışması beklenir, ama orada henüz
+  deneyemedim. Denerseniz Issues'ta nasıl gittiğini yazın, doğrulanan kurulumlar buraya eklenecek.
 - **Oyun güncellemeleri modu bozabilir.** FM27'nin resmi mod desteği yok; mod, oyunun arayüz için
   tuttuğu iç verileri okur ve bunlar her yamada değişebilir. Okunamayan bölümler çökme yerine
   "Veri alınamadı" gösterir, ama bir yamadan sonra yeni sürüm gerekebilir.

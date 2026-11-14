@@ -14,7 +14,9 @@ All notable changes to this project are documented here. The format follows
 ## [0.2.0] - 2026-11-14
 
 Tested with Football Manager 27.0.1 and BepInEx 6.0.0-be.793 on Linux with Proton.
-Not tested on Windows.
+Windows: developed and tested on Linux (Proton). It uses the same BepInEx IL2CPP setup as other FM27
+plugins, so it should work on Windows too, but I have not been able to test it there yet. If you try
+it, please report how it went in Issues, and confirmed setups will be listed here.
 
 ### Added
 
