@@ -10,6 +10,7 @@ namespace SeasonReview
     {
         public static string Write(GameRecord data, string folder)
         {
+            DiskWrites.Demand("the raw data dump");
             Directory.CreateDirectory(folder);
             var path = Path.Combine(folder, "raw-data.txt");
             var text = new StringBuilder();

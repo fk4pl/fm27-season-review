@@ -104,6 +104,7 @@ namespace SeasonReview
 
         public void Add(string key)
         {
+            DiskWrites.Demand("the list of reported seasons");
             if (key == null || !_keys.Add(key)) return;
             var lines = new List<string> { "# Season Review: seasons that already have a report. Delete a line to allow a new report." };
             lines.AddRange(_keys.OrderBy(k => k, StringComparer.Ordinal));

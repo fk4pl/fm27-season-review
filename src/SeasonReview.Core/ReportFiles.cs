@@ -36,6 +36,7 @@ namespace SeasonReview
         /// <summary>Writes "&lt;name&gt;.html" and "&lt;name&gt;.md"; returns the HTML path.</summary>
         public static string Write(string folder, string baseName, string html, string markdown)
         {
+            DiskWrites.Demand("report files");
             Directory.CreateDirectory(folder);
             var utf8 = new UTF8Encoding(false);
             var htmlPath = Path.Combine(folder, baseName + ".html");

@@ -58,6 +58,7 @@ namespace SeasonReview
 
             if (!dump) return bindings;
 
+            DiskWrites.Demand("probe dumps");
             var dir = Path.Combine(BepInEx.Paths.BepInExRootPath, "SeasonReview");
             Directory.CreateDirectory(dir);
 
