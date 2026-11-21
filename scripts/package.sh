@@ -9,15 +9,19 @@
 set -euo pipefail
 cd "$(dirname "${BASH_SOURCE[0]}")/.."
 
+# The version lives only in the csproj; Plugin.Version is generated from it at build time.
 version="$(sed -n 's:.*<Version>\(.*\)</Version>.*:\1:p' src/SeasonReview/SeasonReview.csproj | head -1)"
-plugin_version="$(sed -n 's/.*public const string Version = "\(.*\)";.*/\1/p' src/SeasonReview/Plugin.cs)"
-if [[ "$version" != "$plugin_version" ]]; then
-  echo "Version mismatch: csproj $version, Plugin.cs $plugin_version" >&2
-  exit 1
-fi
 
 dotnet test tests/SeasonReview.Tests -c Release --nologo -v quiet
 dotnet build src/SeasonReview -c Release --nologo -v quiet -p:DeployToGame=false "$@"
+
+# The built DLL must carry the version being packaged (UTF-16 strings in the assembly metadata).
+dll=src/SeasonReview/bin/Release/net6.0/SeasonReview.dll
+if ! strings -el "$dll" | grep -qxF "$version"; then
+  echo "The built DLL does not report version $version:" >&2
+  strings -el "$dll" | grep -E '^[0-9]+\.[0-9]+\.[0-9]+' >&2 || true
+  exit 1
+fi
 
 stage="$(mktemp -d)"
 trap 'rm -rf -- "$stage"' EXIT

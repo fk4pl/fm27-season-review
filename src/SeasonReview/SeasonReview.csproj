@@ -48,6 +48,23 @@
     <Reference Include="$(BepInExDir)/interop/FM.UI.dll" Private="false" />
   </ItemGroup>
 
+  <!-- The version exists only in <Version> above. It is written into a generated constant,
+       because [BepInPlugin] needs a compile-time value; nothing else may hard-code it. -->
+  <Target Name="GenerateBuildInfo" BeforeTargets="CoreCompile">
+    <PropertyGroup>
+      <BuildInfoFile>$(IntermediateOutputPath)BuildInfo.g.cs</BuildInfoFile>
+    </PropertyGroup>
+    <ItemGroup>
+      <BuildInfoLine Include="// Generated from the project's Version by SeasonReview.csproj. Do not edit." />
+      <BuildInfoLine Include="namespace SeasonReview { internal static class BuildInfo { public const string Version = &quot;$(Version)&quot;%3B } }" />
+    </ItemGroup>
+    <WriteLinesToFile File="$(BuildInfoFile)" Lines="@(BuildInfoLine)" Overwrite="true" WriteOnlyWhenDifferent="true" />
+    <ItemGroup>
+      <Compile Include="$(BuildInfoFile)" />
+      <FileWrites Include="$(BuildInfoFile)" />
+    </ItemGroup>
+  </Target>
+
   <!-- Installs as BepInEx/plugins/SeasonReview/SeasonReview.dll (+ lang/ for translations). -->
   <Target Name="DeployToGame" AfterTargets="Build" Condition="'$(DeployToGame)' == 'true'">
     <ItemGroup>

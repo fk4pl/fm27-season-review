@@ -13,7 +13,8 @@ namespace SeasonReview
     {
         public const string Guid = "io.github.seasonreview.fm27";
         public const string Name = "Season Review";
-        public const string Version = "0.2.0";
+        /// <summary>From the project's &lt;Version&gt; (generated at build time; never edit by hand).</summary>
+        public const string Version = BuildInfo.Version;
 
         internal static ManualLogSource L;
         internal static ConfigEntry<bool> Enabled;
@@ -60,7 +61,22 @@ namespace SeasonReview
             }
 
             AddComponent<SeasonReviewBehaviour>();
-            L.LogInfo($"Season Review {Version} loaded (reports: {ReportFolder()})");
+            L.LogInfo($"Season Review {Version}{BuildCommit()} loaded (reports: {ReportFolder()})");
+        }
+
+        /// <summary>" (abc1234)": the commit the DLL was built from, so an outdated copy in the
+        /// plugins folder shows in the log. Empty if the build did not record one.</summary>
+        private static string BuildCommit()
+        {
+            try
+            {
+                var info = typeof(Plugin).Assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion;
+                int plus = info?.IndexOf('+') ?? -1;
+                if (plus < 0 || plus + 1 >= info.Length) return "";
+                var commit = info.Substring(plus + 1);
+                return " (" + (commit.Length > 7 ? commit.Substring(0, 7) : commit) + ")";
+            }
+            catch (Exception) { return ""; }
         }
 
         internal static string ReportFolder()

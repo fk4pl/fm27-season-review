@@ -25,6 +25,11 @@ All notable changes to this project are documented here. The format follows
 - The log now says when a finished season is skipped because it already has a report, once per
   season and game session, with the file to edit to allow a new report.
 
+- The plugin version is generated from the project's `<Version>` at build time, so the log line,
+  the report footer and BepInEx's plugin list can no longer disagree with the release. The load
+  line also names the commit the DLL was built from (`Season Review 0.2.0 (abc1234) loaded`), which
+  makes an outdated copy in the plugins folder visible. `package.sh` checks the built DLL's version.
+
 ### Documentation
 
 - README: a "Hotkey conflicts" section on changing `Hotkey` (Ctrl+F8) and `PanelHotkey` (F10), and
