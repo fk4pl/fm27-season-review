@@ -15,6 +15,10 @@ All notable changes to this project are documented here. The format follows
   the cups, and the report is written once the club's play-offs are over.
 - Matches decided by a penalty shootout show "won/lost on penalties" in the last-match column.
   They still count as draws, as in the game's own records.
+- A season could be reported again after every save: the career's name includes the game's save
+  counter ("(38 defa kaydedildi)", "(saved 38 times)"), which was part of the "already reported"
+  key. The counter is now left out, and entries written by older versions are read the same way,
+  so seasons already in the list are not reported again.
 
 ### Documentation
 

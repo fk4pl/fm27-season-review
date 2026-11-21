@@ -607,6 +607,62 @@ namespace SeasonReview.Tests
             Assert.Contains("Test career", key);
         }
 
+        [Theory]
+        [InlineData("\"Manager - Club\" (38 defa kaydedildi)", "\"Manager - Club\"")]
+        [InlineData("\"Manager - Club\" (saved 4 times)", "\"Manager - Club\"")]
+        [InlineData("\"Manager - Club (v03)\" (46 defa kaydedildi)", "\"Manager - Club (v03)\"")]
+        [InlineData("\"Manager - Club\"", "\"Manager - Club\"")]
+        [InlineData("Test career (12 saves)", "Test career")]
+        [InlineData("Test career (v2)", "Test career (v2)")]
+        [InlineData("Test career (Turkey)", "Test career (Turkey)")]
+        [InlineData("Test career", "Test career")]
+        public void CareerNameDropsTheSaveCounter(string gameName, string expected) =>
+            Assert.Equal(expected, SeasonEnd.CareerName(gameName));
+
+        [Fact]
+        public void SavingAgainKeepsTheSameKey()
+        {
+            string Key(string gameName)
+            {
+                var r = Check(0);
+                r.Values["GameName"] = gameName;
+                return SeasonEnd.Evaluate(r).Key;
+            }
+            var first = Key("\"Manager - Club\" (95 defa kaydedildi)");
+            Assert.Equal(first, Key("\"Manager - Club\" (96 defa kaydedildi)"));
+            Assert.Equal(first, Key("\"Manager - Club\" (saved 97 times)"));
+            Assert.NotEqual(first, Key("\"Manager - Club (v03)\" (46 defa kaydedildi)"));
+        }
+
+        [Fact]
+        public void KeysWrittenByOlderVersionsStillMatch()
+        {
+            var path = Path.Combine(Path.GetTempPath(), "sr-test-" + Guid.NewGuid() + ".txt");
+            try
+            {
+                File.WriteAllLines(path, new[]
+                {
+                    "# old file",
+                    "\"Manager - Club\" (38 defa kaydedildi)|Nation - 29/6/2026|Club|League|2026/27",
+                    "\"Manager - Club\" (39 defa kaydedildi)|Nation - 29/6/2026|Club|League|2026/27",
+                });
+                var reported = new ReportedSeasons(path);
+                Assert.True(reported.Contains("\"Manager - Club\" (40 defa kaydedildi)|Nation - 29/6/2026|Club|League|2026/27"));
+                Assert.True(reported.Contains("\"Manager - Club\"|Nation - 29/6/2026|Club|League|2026/27"));
+                Assert.False(reported.Contains("\"Manager - Club\"|Nation - 29/6/2026|Club|League|2027/28"));
+
+                // The next season's report rewrites the file with the old lines merged.
+                reported.Add("\"Manager - Club\" (60 defa kaydedildi)|Nation - 29/6/2026|Club|League|2027/28");
+                Assert.Equal(new[]
+                    {
+                        "\"Manager - Club\"|Nation - 29/6/2026|Club|League|2026/27",
+                        "\"Manager - Club\"|Nation - 29/6/2026|Club|League|2027/28",
+                    },
+                    File.ReadAllLines(path).Where(l => !l.StartsWith("#")));
+            }
+            finally { File.Delete(path); }
+        }
+
         [Fact]
         public void ReportedSeasonsPersist()
         {
