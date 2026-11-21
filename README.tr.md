@@ -126,15 +126,15 @@ kısa süre öncesine kadar tatile çıkın, sonra devam edin.
 
 ## Oyun içi panel
 
-Yüklü bir kariyerde **F10**'a (`PanelHotkey` ayarıyla değiştirilebilir, bkz. [Kısayol
+Yüklü bir kariyerde **Ctrl+F7**'ye (`PanelHotkey` ayarıyla değiştirilebilir, bkz. [Kısayol
 çakışmaları](#kısayol-çakışmaları)) basarak sezon değerlendirmesini oyunun içinde görebilirsiniz.
 Panel, o an yüklü olan kariyerin canlı verilerini okur (önce birkaç saniye "Sezon verileri
 okunuyor..." yazar) ve HTML dosyasının oluşturulduğu raporun aynısını, `Language` ayarındaki dilde
 kurar. Yedi sekmesi var: Özet, Lig, Oyuncular, Transferler, Finans, Sakatlıklar ve Yönetim. Kapat
-düğmesiyle, **Esc** ile ya da yeniden **F10** ile kapanır. Ana menüde, kariyer yüklü değilken, yüklü
+düğmesiyle, **Esc** ile ya da yeniden **Ctrl+F7** ile kapanır. Ana menüde, kariyer yüklü değilken, yüklü
 bir kariyer olmadığını söyler.
 
-> Önce oyun penceresine tıklayın, sonra F10'a (ya da kendi `PanelHotkey` tuşunuza) basın. Tuş
+> Önce oyun penceresine tıklayın, sonra Ctrl+F7'ye (ya da kendi `PanelHotkey` tuşunuza) basın. Tuş
 > yalnızca oyun penceresi odaktayken çalışır.
 
 Panel bir ektir. Asıl çıktı HTML ve Markdown rapor olmaya devam eder ve eskisi gibi yazılır; panel
@@ -158,7 +158,7 @@ baştaki nota bakın.
 | `OutputFolder` | boş | Raporların klasörü; boşsa yukarıdaki `SeasonReviews` klasörü. |
 | `Hotkey` | `Ctrl+F8` | Ara rapor. Biçim: `[Ctrl+][Shift+][Alt+]<F1-F24, A-Z, 0-9>`. |
 | `PanelEnabled` | `true` | `[Panel]` bölümü. Oyun içi paneli açar veya kapatır. |
-| `PanelHotkey` | `F10` | Paneli açar ve kapatır. Biçim `Hotkey` ile aynı. |
+| `PanelHotkey` | `Ctrl+F7` | Paneli açar ve kapatır. Biçim `Hotkey` ile aynı. |
 | `PanelPosition` | `Center` | Panelin yeri: `Center`, `TopLeft`, `TopRight`, `BottomLeft` veya `BottomRight`. |
 | `ProbeHotkey` | `false` | Geliştirici: Shift+kısayol, açık ekranın özellik adlarını döker. |
 | `RawDump` | `false` | Geliştirici: biçimlendirilmemiş veriyi de raporun yanına yazar. |
@@ -172,7 +172,11 @@ Modun tuşlarından biri oyun, sisteminiz ya da başka bir mod tarafından kulla
 `BepInEx/config/io.github.seasonreview.fm27.cfg` dosyasından değiştirin:
 
 - `[General]` bölümünde `Hotkey` (varsayılan `Ctrl+F8`): ara rapor
-- `[Panel]` bölümünde `PanelHotkey` (varsayılan `F10`): oyun içi paneli açar ve kapatır
+- `[Panel]` bölümünde `PanelHotkey` (varsayılan `Ctrl+F7`): oyun içi paneli açar ve kapatır
+
+0.2.0'a kadar panel tuşu `F10` idi; bu tuşu ManagerLife da kullanır (ve her zaman dinler). Mevcut
+config dosyası içindeki değeri korur, yani güncellemeden sonra hâlâ `PanelHotkey = F10` yazıyor
+olabilir: bunu kendiniz değiştirin. ManagerLife kuruluysa BepInEx günlüğü bunu hatırlatır.
 
 Biçim: `[Ctrl+][Shift+][Alt+]<F1-F24, A-Z veya 0-9>`, örneğin `Hotkey = Ctrl+Shift+F9`. Dosyayı
 oyun kapalıyken düzenleyin: BepInEx dosyayı oyun açılırken okur, bu yüzden oyun çalışırken

@@ -30,6 +30,10 @@ All notable changes to this project are documented here. The format follows
   line also names the commit the DLL was built from (`Season Review 0.2.0 (abc1234) loaded`), which
   makes an outdated copy in the plugins folder visible. `package.sh` checks the built DLL's version.
 
+- The default `PanelHotkey` is now `Ctrl+F7` instead of `F10`, which ManagerLife also uses (and
+  always listens to). Existing config files keep their value; when it is `F10` and ManagerLife is
+  loaded, the log suggests changing it.
+
 ### Documentation
 
 - README: a "Hotkey conflicts" section on changing `Hotkey` (Ctrl+F8) and `PanelHotkey` (F10), and

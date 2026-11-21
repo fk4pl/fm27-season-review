@@ -124,15 +124,15 @@ the last league match, then continue.
 
 ## In-game panel
 
-Press **F10** (changeable with the `PanelHotkey` setting, see [Hotkey conflicts](#hotkey-conflicts))
+Press **Ctrl+F7** (changeable with the `PanelHotkey` setting, see [Hotkey conflicts](#hotkey-conflicts))
 in a loaded career to see the season review inside the game. The panel reads the live data of the
 career that is loaded right now (it shows "Reading season data..." for a few seconds first) and
 builds the same report the HTML file is made from, in the language set by `Language`. It has seven
 tabs: Summary, League, Players, Transfers, Finances, Injuries and Board. Close it with its Close
-button, **Esc** or **F10** again. In the main menu, without a career, it says that no career is
+button, **Esc** or **Ctrl+F7** again. In the main menu, without a career, it says that no career is
 loaded.
 
-> Click into the game window first, then press F10 (or your `PanelHotkey`). The key only works
+> Click into the game window first, then press Ctrl+F7 (or your `PanelHotkey`). The key only works
 > while the game window has the focus.
 
 The panel is an extra. The HTML and Markdown report remain the main output and are written
@@ -157,7 +157,7 @@ see the Windows note at the top.
 | `OutputFolder` | empty | Where reports go; empty means the `SeasonReviews` folder above. |
 | `Hotkey` | `Ctrl+F8` | Interim report. Format `[Ctrl+][Shift+][Alt+]<F1-F24, A-Z, 0-9>`. |
 | `PanelEnabled` | `true` | Section `[Panel]`. Turn the in-game panel on or off. |
-| `PanelHotkey` | `F10` | Opens and closes the panel. Same format as `Hotkey`. |
+| `PanelHotkey` | `Ctrl+F7` | Opens and closes the panel. Same format as `Hotkey`. |
 | `PanelPosition` | `Center` | Where the panel appears: `Center`, `TopLeft`, `TopRight`, `BottomLeft` or `BottomRight`. |
 | `ProbeHotkey` | `false` | Developer: Shift+hotkey dumps property names of the current screen. |
 | `RawDump` | `false` | Developer: also write the unformatted data next to the report. |
@@ -172,7 +172,11 @@ If one of the mod's keys is already used by the game, your system or another mod
 `BepInEx/config/io.github.seasonreview.fm27.cfg`:
 
 - `Hotkey` in `[General]` (default `Ctrl+F8`): interim report
-- `PanelHotkey` in `[Panel]` (default `F10`): open and close the in-game panel
+- `PanelHotkey` in `[Panel]` (default `Ctrl+F7`): open and close the in-game panel
+
+Up to 0.2.0 the panel key was `F10`, which ManagerLife also uses (and always listens to). An
+existing config file keeps the value it has, so after updating it may still say
+`PanelHotkey = F10`: change it yourself. If ManagerLife is installed, the BepInEx log reminds you.
 
 Format: `[Ctrl+][Shift+][Alt+]<F1-F24, A-Z or 0-9>`, e.g. `Hotkey = Ctrl+Shift+F9`. Edit the file
 while the game is closed: BepInEx reads it when the game starts, so changes saved while the game is

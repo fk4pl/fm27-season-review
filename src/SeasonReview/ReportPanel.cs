@@ -113,12 +113,23 @@ namespace SeasonReview
             _hotkeyParsedFrom = text;
             if (!Hotkey.TryParse(text, out _hotkey))
             {
-                Plugin.L.LogWarning($"Invalid PanelHotkey '{text}', falling back to F10.");
-                Hotkey.TryParse("F10", out _hotkey);
+                Plugin.L.LogWarning($"Invalid PanelHotkey '{text}', falling back to {Plugin.DefaultPanelHotkey}.");
+                Hotkey.TryParse(Plugin.DefaultPanelHotkey, out _hotkey);
             }
+            // Older versions defaulted to F10, and BepInEx keeps the value in existing config
+            // files. Only point it out; the user's setting is never changed.
+            if (_hotkey.ToString() == "F10" && OtherPluginLoaded("com.woba.fm26.managerlife"))
+                Plugin.L.LogWarning($"PanelHotkey F10 is also ManagerLife's panel key, so both panels open. "
+                                    + $"Set PanelHotkey (e.g. {Plugin.DefaultPanelHotkey}) in BepInEx/config/{Plugin.Guid}.cfg while the game is closed.");
             if (Hotkey.TryParse(Plugin.HotkeyText.Value, out var report) && report.ToString() == _hotkey.ToString())
                 Plugin.L.LogWarning($"PanelHotkey and Hotkey are both {_hotkey}: the key will open the panel and write a report.");
             Plugin.L.LogInfo($"Panel hotkey: {_hotkey}");
+        }
+
+        private static bool OtherPluginLoaded(string guid)
+        {
+            try { return BepInEx.Unity.IL2CPP.IL2CPPChainloader.Instance.Plugins.ContainsKey(guid); }
+            catch (Exception) { return false; }
         }
 
         // ── Open / close ───────────────────────────────────────────────────

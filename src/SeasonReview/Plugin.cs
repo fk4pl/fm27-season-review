@@ -28,6 +28,10 @@ namespace SeasonReview
         internal static ConfigEntry<string> PanelHotkeyText;
         internal static ConfigEntry<string> PanelPositionText;
 
+        /// <summary>Default panel key. Not F8 (Heffem Nations Draw), F9 (FM View Exporter, FM27
+        /// Player Export) or F10 (ManagerLife, which always listens to F10).</summary>
+        internal const string DefaultPanelHotkey = "Ctrl+F7";
+
         public override void Load()
         {
             L = Log;
@@ -49,7 +53,7 @@ namespace SeasonReview
 
             PanelEnabled = Config.Bind("Panel", "PanelEnabled", true,
                 "Show the season review inside the game with PanelHotkey. The report files are written as before; the panel is an extra and never writes anything.");
-            PanelHotkeyText = Config.Bind("Panel", "PanelHotkey", "F10",
+            PanelHotkeyText = Config.Bind("Panel", "PanelHotkey", DefaultPanelHotkey,
                 "Opens and closes the in-game panel (Esc also closes it). Same format as Hotkey.");
             PanelPositionText = Config.Bind("Panel", "PanelPosition", "Center",
                 "Where the panel appears: Center, TopLeft, TopRight, BottomLeft or BottomRight.");
