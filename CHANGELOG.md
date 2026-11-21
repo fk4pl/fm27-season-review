@@ -5,6 +5,22 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Planned
+
+- Season-end check during holidays: run the once-a-day season check while the game is processing a
+  holiday (not during matches), so that holidaying past the last league match into the next season
+  no longer misses the report. Needs testing for performance and stability first.
+
+## [0.2.1] - 2026-11-21
+
+Tested with Football Manager 27.0.1 and 27.1.0 and BepInEx 6.0.0-be.793 on Linux with Proton. The
+play-off fix was checked in game on 27.1.0 (TFF 1. Lig: 38 league matches and 61 points as in the
+game's table, play-offs on a line of their own). Windows: still untested; reports are welcome in
+Issues.
+
+The in-game panel's default key is now **Ctrl+F7** (was F10). Existing config files keep the value
+they have; see "Changed" below.
+
 ### Fixed
 
 - Leagues with play-offs (e.g. TFF 1. Lig): the game gives play-off matches the league's name, so
@@ -24,26 +40,20 @@ All notable changes to this project are documented here. The format follows
 
 - The log now says when a finished season is skipped because it already has a report, once per
   season and game session, with the file to edit to allow a new report.
-
 - The plugin version is generated from the project's `<Version>` at build time, so the log line,
   the report footer and BepInEx's plugin list can no longer disagree with the release. The load
-  line also names the commit the DLL was built from (`Season Review 0.2.0 (abc1234) loaded`), which
+  line also names the commit the DLL was built from (`Season Review 0.2.1 (abc1234) loaded`), which
   makes an outdated copy in the plugins folder visible. `package.sh` checks the built DLL's version.
-
 - The default `PanelHotkey` is now `Ctrl+F7` instead of `F10`, which ManagerLife also uses (and
   always listens to). Existing config files keep their value; when it is `F10` and ManagerLife is
   loaded, the log suggests changing it.
 
 ### Documentation
 
-- README: a "Hotkey conflicts" section on changing `Hotkey` (Ctrl+F8) and `PanelHotkey` (F10), and
+- README: a "Hotkey conflicts" section on changing `Hotkey` (Ctrl+F8) and `PanelHotkey`, and
   notes where the keys are mentioned that both can be changed in the config.
-
-### Planned
-
-- Season-end check during holidays: run the once-a-day season check while the game is processing a
-  holiday (not during matches), so that holidaying past the last league match into the next season
-  no longer misses the report. Needs testing for performance and stability first.
+- README: tested game versions 27.0.1 and 27.1.0, and a note that the first start after a game
+  update is slower because BepInEx rebuilds its files.
 
 ## [0.2.0] - 2026-11-14
 

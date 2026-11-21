@@ -11,7 +11,7 @@ Oyunun içinde çalışır, ayrı bir uygulama gerektirmez ve oyun verisini yaln
 dosyalarınıza hiçbir zaman yazmaz ve gizli değerleri (mevcut/potansiyel yetenek, gizli nitelikler,
 sakatlanma eğilimi vb.) hiçbir yerde göstermez.
 
-> **Durum: 0.2.0, erken sürüm.**
+> **Durum: 0.2.1, erken sürüm.**
 >
 > **Windows:** Linux'ta (Proton) geliştirildi ve test edildi. Diğer FM27 eklentileriyle aynı
 > BepInEx IL2CPP altyapısını kullanıyor, bu yüzden Windows'ta da çalışması beklenir, ama orada
@@ -59,7 +59,8 @@ oyundaki gibi gösterilir.
 
 ## Gereksinimler
 
-- Steam'de Football Manager 27 (**27.0.1** ile test edildi, Steam build 26577676).
+- Steam'de Football Manager 27 (**27.0.1** ve **27.1.0** ile test edildi, Steam build 26577676 ve
+  26620374).
 - **BepInEx 6.0.0-be.793**, Unity IL2CPP, Windows x64. Daha yeni bleeding-edge sürümler
   (FM27'yi be.755 ve sonrası okuyabiliyor) çalışabilir ama test edilmedi.
 - Linux: Steam ve Proton (Proton Experimental ile test edildi).
@@ -81,7 +82,8 @@ onlara yazmaz, ama erken sürüm bir yazılım.
    Zaten başlatma seçenekleriniz varsa `WINEDLLOVERRIDES=...` kısmını onların önüne koyun;
    örneğin `WINEDLLOVERRIDES="winhttp=n,b" sarmalayici %command%`.
 5. Oyunu bir kez açın, ana menüyü bekleyin (ilk açılış birkaç dakika sürer), sonra kapatın.
-   `BepInEx/LogOutput.log` dosyası oluşmuş olmalı.
+   `BepInEx/LogOutput.log` dosyası oluşmuş olmalı. Her FM27 güncellemesinden sonraki ilk açılış da
+   yine yavaştır, çünkü BepInEx dosyalarını yeni oyun sürümü için yeniden oluşturur.
 
 ### 2. Season Review kurulumu
 
@@ -102,8 +104,8 @@ Betik eklentiyi kopyalar, BepInEx be.793 eksikse indirip kurmayı önerir (önce
 dosyanın sağlama toplamını kontrol eder) ve başlatma seçeneğini hatırlatır. Kurmadan önce oyunu
 kapatın.
 
-Çalıştığını görmek için `BepInEx/LogOutput.log` içinde `Season Review 0.2.0 loaded` satırını
-arayın.
+Çalıştığını görmek için `BepInEx/LogOutput.log` içinde `Season Review 0.2.1 (…) loaded` satırını
+arayın (parantez içindeki kısım derlemenin commit'idir).
 
 ## Kullanım
 

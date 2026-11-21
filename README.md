@@ -11,7 +11,7 @@ It runs inside the game, needs no companion app, and only **reads** game data. I
 to your save files and never shows hidden values (current/potential ability, hidden attributes,
 injury proneness and the like).
 
-> **Status: 0.2.0, early release.**
+> **Status: 0.2.1, early release.**
 >
 > **Windows:** developed and tested on Linux (Proton). It uses the same BepInEx IL2CPP setup as
 > other FM27 plugins, so it should work on Windows too, but I have not been able to test it there
@@ -59,7 +59,8 @@ shown as the game gives it.
 
 ## Requirements
 
-- Football Manager 27 on Steam (tested with **27.0.1**, Steam build 26577676).
+- Football Manager 27 on Steam (tested with **27.0.1** and **27.1.0**, Steam builds 26577676 and
+  26620374).
 - **BepInEx 6.0.0-be.793**, Unity IL2CPP, Windows x64. Other recent bleeding-edge builds (be.755 or
   newer can read FM27) may work but were not tested.
 - Linux: Steam with Proton (tested with Proton Experimental).
@@ -81,7 +82,8 @@ not write to them, but it is early software.
    If you already have launch options, put the `WINEDLLOVERRIDES=...` part in front of them,
    for example `WINEDLLOVERRIDES="winhttp=n,b" mywrapper %command%`.
 5. Start the game once, wait for the main menu (the first start takes a few minutes), then quit.
-   `BepInEx/LogOutput.log` should now exist.
+   `BepInEx/LogOutput.log` should now exist. The first start after every FM27 update is slow
+   again, because BepInEx rebuilds its files for the new game version.
 
 ### 2. Install Season Review
 
@@ -101,7 +103,8 @@ The installer copies the plugin, can download and install BepInEx be.793 if it i
 asks first and checks the download's checksum), and reminds you of the launch option. Close the
 game before installing.
 
-To check it works, look for `Season Review 0.2.0 loaded` in `BepInEx/LogOutput.log`.
+To check it works, look for `Season Review 0.2.1 (…) loaded` in `BepInEx/LogOutput.log` (the part in
+brackets is the build's commit).
 
 ## Usage
 
