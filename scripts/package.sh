@@ -16,10 +16,12 @@ dotnet test tests/SeasonReview.Tests -c Release --nologo -v quiet
 dotnet build src/SeasonReview -c Release --nologo -v quiet -p:DeployToGame=false "$@"
 
 # The built DLL must carry the version being packaged (UTF-16 strings in the assembly metadata).
+# (Read into a variable first: with pipefail, "strings | grep -q" fails when grep exits early.)
 dll=src/SeasonReview/bin/Release/net6.0/SeasonReview.dll
-if ! strings -el "$dll" | grep -qxF "$version"; then
+dll_strings="$(strings -el "$dll")"
+if ! grep -qxF "$version" <<<"$dll_strings"; then
   echo "The built DLL does not report version $version:" >&2
-  strings -el "$dll" | grep -E '^[0-9]+\.[0-9]+\.[0-9]+' >&2 || true
+  grep -E '^[0-9]+\.[0-9]+\.[0-9]+' <<<"$dll_strings" >&2 || true
   exit 1
 fi
 
