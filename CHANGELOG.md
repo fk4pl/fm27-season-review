@@ -5,6 +5,17 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Fixed
+
+- Leagues with play-offs (e.g. TFF 1. Lig): the game gives play-off matches the league's name, so
+  they were counted as league matches. The league table was then rejected as incomplete and the
+  record was calculated from results with the play-offs included (41 matches instead of 38).
+  Play-off matches are now recognised by the fixture's play-off flag and kept out of the league
+  record, the home/away split and the league runs. They are listed as a line of their own next to
+  the cups, and the report is written once the club's play-offs are over.
+- Matches decided by a penalty shootout show "won/lost on penalties" in the last-match column.
+  They still count as draws, as in the game's own records.
+
 ### Documentation
 
 - README: a "Hotkey conflicts" section on changing `Hotkey` (Ctrl+F8) and `PanelHotkey` (F10), and

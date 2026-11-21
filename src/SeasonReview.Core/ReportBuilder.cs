@@ -32,7 +32,9 @@ namespace SeasonReview
                 Subtitle = _s.Format("subtitle", ("division", _d.Division ?? "?"), ("date", _s.Date(_d.Date))),
             };
             if (!_d.SeasonComplete)
-                doc.Notice = _s.Format("interim", ("remaining", _s.Count(_d.LeagueFixturesRemaining, "leaguematch")));
+                doc.Notice = _d.LeagueFixturesRemaining == 0 && _d.PlayOffFixturesRemaining > 0
+                    ? _s.Get("interim.playoffs")
+                    : _s.Format("interim", ("remaining", _s.Count(_d.LeagueFixturesRemaining, "leaguematch")));
 
             if (_d.Total != null)
             {
@@ -109,7 +111,7 @@ namespace SeasonReview
                 foreach (var cup in _d.Cups)
                     table.Rows.Add(new[]
                     {
-                        cup.Competition,
+                        cup.PlayOff ? _s.Format("cups.playoffs", ("competition", cup.Competition)) : cup.Competition,
                         $"{cup.Played} / {cup.Won} / {cup.Drawn} / {cup.Lost}",
                         cup.LastMatch == null ? "-" : MatchLine(cup.LastMatch),
                     });
@@ -388,7 +390,9 @@ namespace SeasonReview
             ("competition", m.Competition ?? "?"), ("date", _s.Date(m.Date)));
 
         private string MatchLine(MatchResult m) =>
-            $"{m.Opponent} ({_s.Get(m.Home ? "common.home" : "common.away")}) {m.GoalsFor}-{m.GoalsAgainst}, {_s.Date(m.Date)}";
+            $"{m.Opponent} ({_s.Get(m.Home ? "common.home" : "common.away")}) {m.GoalsFor}-{m.GoalsAgainst}"
+            + (m.PenaltyWin ? $" ({_s.Get("match.penaltywin")})" : m.PenaltyLoss ? $" ({_s.Get("match.penaltyloss")})" : "")
+            + $", {_s.Date(m.Date)}";
 
         private static string[] LeagueRow(string label, LeagueRecord r, int? points) => new[]
         {

@@ -197,7 +197,8 @@ namespace SeasonReview
             _job = Job.None;
             var status = SeasonEnd.Evaluate(record);
             // Quiet during the season; visible as the end approaches. Each message only once.
-            if ((status.Ended || (status.LeagueRemaining > 0 && status.LeagueRemaining <= 3) || status.LeaguePlayed == 0)
+            if ((status.Ended || (status.LeagueRemaining > 0 && status.LeagueRemaining <= 3)
+                 || status.PlayOffsRemaining > 0 || status.LeaguePlayed == 0)
                 && status.Reason != _lastLoggedStatus)
             {
                 _lastLoggedStatus = status.Reason;

@@ -68,7 +68,7 @@ namespace SeasonReview
             var fixture = new Spec().Value(
                 "FixtureDate", "Competition.Name", "Competition.IsFriendly",
                 "HomeTeam.Name", "AwayTeam.Name", "HomeScore", "AwayScore", "HasResult", "Result",
-                "HomeTeamWon", "AwayTeamWon");
+                "HomeTeamWon", "AwayTeamWon", "IsPlayOffs");
             spec.Object(Team, FixtureContexts(new Spec()).List("FixtureList", fixture, 90, Fixtures), Fixtures);
 
             var tableRow = new Spec().Value(

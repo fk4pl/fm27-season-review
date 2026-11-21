@@ -18,6 +18,13 @@ namespace SeasonReview
         public DateTime? Date;
         public string Competition, Opponent, Score;
         public bool Home, Friendly, League;
+        /// <summary>A play-off match (promotion or relegation) of the club's league. The game gives
+        /// it the league's competition name, so it is told apart by the fixture's IsPlayOffs flag.
+        /// Never counted as a league match.</summary>
+        public bool PlayOff;
+        /// <summary>Level on goals and decided by a penalty shootout. <see cref="Outcome"/> stays
+        /// 'D', as in the game's own records.</summary>
+        public bool PenaltyWin, PenaltyLoss;
         public int GoalsFor, GoalsAgainst;
         public char Outcome => GoalsFor > GoalsAgainst ? 'W' : GoalsFor < GoalsAgainst ? 'L' : 'D';
     }
@@ -25,6 +32,9 @@ namespace SeasonReview
     internal sealed class CupRun
     {
         public string Competition, BoardView;
+        /// <summary>The play-offs of the club's league (shown with a play-off label, since the
+        /// game gives them the league's name).</summary>
+        public bool PlayOff;
         public MatchResult LastMatch;
         public int Played, Won, Drawn, Lost;
     }
@@ -88,6 +98,9 @@ namespace SeasonReview
         public int LongestWinningRun, LongestUnbeatenRun;
         public MatchResult BiggestWin, HeaviestDefeat; // competitive matches only
         public int LeagueFixturesRemaining;
+        /// <summary>Play-off fixtures of the club without a result. The season is not complete
+        /// while one is left, so the report includes the play-offs.</summary>
+        public int PlayOffFixturesRemaining;
         public List<MatchResult> Matches = new();
         public List<CupRun> Cups = new();
         public List<Objective> Objectives = new();
@@ -272,11 +285,16 @@ namespace SeasonReview
             foreach (var f in fixtures)
             {
                 string competition = Text(f.Get("Competition.Name"));
-                bool league = competition != null && competition == data.Division;
+                // The league's play-offs carry the league's name; only the fixture's flag tells
+                // them apart. Play-off rounds of other competitions stay ordinary cup matches.
+                bool leagueName = competition != null && competition == data.Division;
+                bool playOff = leagueName && Bool(f.Get("IsPlayOffs"));
+                bool league = leagueName && !playOff;
                 bool played = Bool(f.Get("HasResult"));
                 if (!played)
                 {
                     if (league) data.LeagueFixturesRemaining++;
+                    else if (playOff) data.PlayOffFixturesRemaining++;
                     continue;
                 }
 
@@ -286,6 +304,11 @@ namespace SeasonReview
                 bool isHome = home == data.Club;
                 if (!isHome && away != data.Club) continue;
 
+                // Level on goals but with a winner: decided on penalties.
+                bool level = homeGoals == awayGoals;
+                bool won = Bool(f.Get(isHome ? "HomeTeamWon" : "AwayTeamWon"));
+                bool lost = Bool(f.Get(isHome ? "AwayTeamWon" : "HomeTeamWon"));
+
                 data.Matches.Add(new MatchResult
                 {
                     Date = Date(f.Get("FixtureDate")),
@@ -293,6 +316,9 @@ namespace SeasonReview
                     Opponent = isHome ? away : home,
                     Home = isHome,
                     League = league,
+                    PlayOff = playOff,
+                    PenaltyWin = level && won && !lost,
+                    PenaltyLoss = level && lost && !won,
                     Friendly = Bool(f.Get("Competition.IsFriendly")),
                     GoalsFor = isHome ? homeGoals.Value : awayGoals.Value,
                     GoalsAgainst = isHome ? awayGoals.Value : homeGoals.Value,
@@ -312,15 +338,18 @@ namespace SeasonReview
             data.Away = Tally(leagueMatches.Where(m => !m.Home));
             data.LongestWinningRun = LongestRun(leagueMatches, m => m.Outcome == 'W');
             data.LongestUnbeatenRun = LongestRun(leagueMatches, m => m.Outcome != 'L');
-            data.SeasonComplete = leagueMatches.Count > 0 && data.LeagueFixturesRemaining == 0;
+            data.SeasonComplete = leagueMatches.Count > 0 && data.LeagueFixturesRemaining == 0
+                                  && data.PlayOffFixturesRemaining == 0;
 
+            // Cups, and the league's play-offs as a line of their own.
             foreach (var group in data.Matches.Where(m => !m.League && !m.Friendly && m.Competition != null)
-                         .GroupBy(m => m.Competition))
+                         .GroupBy(m => (m.Competition, m.PlayOff)))
             {
                 var last = group.Last();
                 data.Cups.Add(new CupRun
                 {
-                    Competition = group.Key,
+                    Competition = group.Key.Competition,
+                    PlayOff = group.Key.PlayOff,
                     Played = group.Count(),
                     Won = group.Count(m => m.Outcome == 'W'),
                     Drawn = group.Count(m => m.Outcome == 'D'),
@@ -372,7 +401,7 @@ namespace SeasonReview
                 if (string.IsNullOrEmpty(objective.BoardView)) continue; // future seasons have no verdict yet
                 data.Objectives.Add(objective);
             }
-            foreach (var cup in data.Cups)
+            foreach (var cup in data.Cups.Where(c => !c.PlayOff)) // the league's objective is not about the play-offs
                 cup.BoardView = data.Objectives.FirstOrDefault(o => o.Competition == cup.Competition)?.BoardView;
             if (data.Objectives.Count == 0) throw new InvalidOperationException("no competition objectives");
         }

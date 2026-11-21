@@ -32,9 +32,12 @@ namespace SeasonReview.Tests
         public static string Link(string text) => "\u0001QUJDREVGR0g=\u0002" + text + "\u0001";
 
         public static GameRecord Fixture(string competition, string home, string away, int? homeGoals, int? awayGoals,
-            DateTime date, bool friendly = false)
+            DateTime date, bool friendly = false, bool? playOff = null, bool homeWon = false, bool awayWon = false)
         {
             var f = new GameRecord();
+            if (playOff != null) f.Values["IsPlayOffs"] = playOff.Value ? "True" : "False";
+            if (homeWon) f.Values["HomeTeamWon"] = "True";
+            if (awayWon) f.Values["AwayTeamWon"] = "True";
             f.Values["FixtureDate"] = GameDate(date.Year, date.Month, date.Day);
             f.Values["Competition.Name"] = Link(competition);
             f.Values["Competition.IsFriendly"] = friendly ? "True" : "False";
@@ -151,6 +154,25 @@ namespace SeasonReview.Tests
             injury.Values["IsActive"] = "False";
             injury.Values["InjuryDate"] = GameDate(2026, 9, 1);
             r.Lists[SeasonSpec.PastInjuries] = new List<GameRecord> { injury };
+            return r;
+        }
+
+        /// <summary>
+        /// <see cref="Season"/> plus the league's play-offs, as the game lists them: same
+        /// competition name as the league, flagged IsPlayOffs. Quarter-final 1-1 won on
+        /// penalties, semi-final won 2-0, final lost 0-1. <paramref name="pending"/> more
+        /// play-off fixtures are still to be played.
+        /// </summary>
+        public static GameRecord SeasonWithPlayOffs(int pending = 0)
+        {
+            var r = Season();
+            var fixtures = r.Items(SeasonSpec.Fixtures)[0].Items(SeasonSpec.Fixtures);
+            var d = new DateTime(2027, 5, 20);
+            fixtures.Add(Fixture(League, "Rival FC", Club, 1, 1, d, playOff: true, awayWon: true));
+            fixtures.Add(Fixture(League, Club, "Third United", 2, 0, d.AddDays(4), playOff: true));
+            fixtures.Add(Fixture(League, "Lower Town", Club, 1, 0, d.AddDays(9), playOff: true));
+            for (int i = 0; i < pending; i++)
+                fixtures.Add(Fixture(League, Club, "Rival FC", null, null, d.AddDays(14 + i), playOff: true));
             return r;
         }
 

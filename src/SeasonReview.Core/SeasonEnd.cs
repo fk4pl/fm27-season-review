@@ -9,7 +9,8 @@ namespace SeasonReview
     /// <summary>
     /// Decides whether the human manager's league season is over, from a small read of the
     /// fixture list. A season is over when at least one league match has been played and no
-    /// league fixture is left without a result.
+    /// league or league play-off fixture of the club is left without a result (so a season
+    /// with play-offs is reported once the club's play-offs are over).
     /// </summary>
     internal static class SeasonEnd
     {
@@ -19,7 +20,7 @@ namespace SeasonReview
             .Value("CurrentGameDate", "GameName", "GameStartDate",
                    SeasonSpec.Team + ".Name", SeasonSpec.Division + ".Name", SeasonSpec.Division + ".SeasonName")
             .Object(SeasonSpec.Team, SeasonSpec.FixtureContexts(new Spec())
-                .List("FixtureList", new Spec().Value("Competition.Name", "HasResult"), 120, FixtureList), FixtureList);
+                .List("FixtureList", new Spec().Value("Competition.Name", "HasResult", "IsPlayOffs"), 120, FixtureList), FixtureList);
 
         /// <summary>
         /// Identifies one season of one club in one career, so a report is only ever produced
@@ -36,7 +37,7 @@ namespace SeasonReview
         internal sealed class Status
         {
             public string Key, Club, Division, Season;
-            public int LeaguePlayed, LeagueRemaining;
+            public int LeaguePlayed, LeagueRemaining, PlayOffsRemaining;
             public bool Ended;
             public string Reason;
         }
@@ -70,14 +71,21 @@ namespace SeasonReview
                 if (SeasonDataBuilder.Text(f.Get("Competition.Name")) != status.Division) continue;
                 var hasResult = f.Get("HasResult");
                 if (hasResult == null) { status.Reason = "fixture list incomplete"; return status; }
-                if (SeasonDataBuilder.Bool(hasResult)) status.LeaguePlayed++;
+                // The league's play-offs have the league's name: not league matches, but the
+                // season is not over while one is still to be played.
+                bool playOff = SeasonDataBuilder.Bool(f.Get("IsPlayOffs"));
+                bool played = SeasonDataBuilder.Bool(hasResult);
+                if (playOff) { if (!played) status.PlayOffsRemaining++; }
+                else if (played) status.LeaguePlayed++;
                 else status.LeagueRemaining++;
             }
 
-            status.Ended = status.LeaguePlayed > 0 && status.LeagueRemaining == 0;
+            status.Ended = status.LeaguePlayed > 0 && status.LeagueRemaining == 0 && status.PlayOffsRemaining == 0;
             status.Reason = status.Ended
                 ? "all league fixtures played"
-                : $"{status.LeaguePlayed} league matches played, {status.LeagueRemaining} remaining";
+                : status.LeagueRemaining == 0 && status.LeaguePlayed > 0
+                    ? $"{status.LeaguePlayed} league matches played, {status.PlayOffsRemaining} play-off matches remaining"
+                    : $"{status.LeaguePlayed} league matches played, {status.LeagueRemaining} remaining";
             return status;
         }
     }

@@ -335,6 +335,102 @@ namespace SeasonReview.Tests
         }
 
         [Fact]
+        public void PlayOffsDoNotMakeTheTableUnusable()
+        {
+            var warnings = new List<string>();
+            var d = SeasonDataBuilder.Build(TestData.SeasonWithPlayOffs(), warnings.Add);
+            Assert.Empty(warnings);
+            Assert.False(d.LeagueFromFixtures);
+            Assert.Equal(6, d.Total.Played);
+            Assert.Equal(11, d.PointsFromTable);
+            Assert.True(d.SeasonComplete);
+        }
+
+        [Fact]
+        public void FallbackExcludesPlayOffs()
+        {
+            var raw = TestData.SeasonWithPlayOffs();
+            raw.Lists.Remove(SeasonSpec.Stages);
+            var d = SeasonDataBuilder.Build(raw, _ => { });
+            Assert.True(d.LeagueFromFixtures);
+            Assert.Equal((6, 3, 2, 1, 11, 7, 11), (d.Total.Played, d.Total.Won, d.Total.Drawn, d.Total.Lost, d.Total.GoalsFor, d.Total.GoalsAgainst, d.Total.Points));
+        }
+
+        [Fact]
+        public void HomeAwayAndRunsIgnorePlayOffs()
+        {
+            var d = SeasonDataBuilder.Build(TestData.SeasonWithPlayOffs(), _ => { });
+            Assert.Equal(6, d.Home.Played + d.Away.Played);
+            Assert.Equal(2, d.LongestWinningRun);
+            Assert.Equal(3, d.LongestUnbeatenRun);
+        }
+
+        [Fact]
+        public void PlayOffsGetTheirOwnCompetitionLine()
+        {
+            var d = SeasonDataBuilder.Build(TestData.SeasonWithPlayOffs(), _ => { });
+            var playOffs = Assert.Single(d.Cups, c => c.PlayOff);
+            Assert.Equal(TestData.League, playOffs.Competition);
+            Assert.Equal((3, 1, 1, 1), (playOffs.Played, playOffs.Won, playOffs.Drawn, playOffs.Lost));
+            Assert.Equal("Lower Town", playOffs.LastMatch.Opponent);
+            Assert.Null(playOffs.BoardView); // the league objective belongs to the league line
+            Assert.Single(d.Cups, c => !c.PlayOff);
+        }
+
+        [Fact]
+        public void PenaltyShootoutIsADrawWithAWinner()
+        {
+            var d = SeasonDataBuilder.Build(TestData.SeasonWithPlayOffs(), _ => { });
+            var shootout = d.Matches.Single(m => m.PlayOff && m.Opponent == "Rival FC");
+            Assert.Equal('D', shootout.Outcome);
+            Assert.True(shootout.PenaltyWin);
+            Assert.False(shootout.PenaltyLoss);
+            Assert.DoesNotContain(d.Matches, m => m.Outcome != 'D' && (m.PenaltyWin || m.PenaltyLoss));
+            Assert.Equal("Third United", d.BiggestWin.Opponent);
+        }
+
+        [Fact]
+        public void PendingPlayOffMeansTheSeasonIsNotComplete()
+        {
+            var d = SeasonDataBuilder.Build(TestData.SeasonWithPlayOffs(pending: 1), _ => { });
+            Assert.False(d.SeasonComplete);
+            Assert.Equal(0, d.LeagueFixturesRemaining);
+            Assert.Equal(1, d.PlayOffFixturesRemaining);
+        }
+
+        [Fact]
+        public void RelegationPlayOffOpponentDoesNotChangeLeagueSize()
+        {
+            var raw = TestData.SeasonWithPlayOffs();
+            raw.Lists.Remove(SeasonSpec.Stages);
+            var d = SeasonDataBuilder.Build(raw, _ => { });
+            Assert.Equal(3, d.LeagueSize); // "Lower Town" only met in the play-offs
+        }
+
+        [Fact]
+        public void MissingIsPlayOffsKeepsTodaysBehaviour()
+        {
+            var raw = TestData.SeasonWithPlayOffs();
+            foreach (var f in raw.Items(SeasonSpec.Fixtures)[0].Items(SeasonSpec.Fixtures)) f.Values.Remove("IsPlayOffs");
+            var d = SeasonDataBuilder.Build(raw, _ => { });
+            Assert.True(d.LeagueFromFixtures); // play-offs taken for league matches, as before
+            Assert.Equal(9, d.Total.Played);
+            Assert.DoesNotContain(d.Cups, c => c.PlayOff);
+        }
+
+        [Fact]
+        public void OtherCompetitionsPlayOffRoundsStayCupMatches()
+        {
+            var raw = TestData.Season();
+            var cup = raw.Items(SeasonSpec.Fixtures)[0].Items(SeasonSpec.Fixtures).Last();
+            cup.Values["IsPlayOffs"] = "True";
+            var d = SeasonDataBuilder.Build(raw, _ => { });
+            var line = Assert.Single(d.Cups);
+            Assert.False(line.PlayOff);
+            Assert.Equal(2, line.Played);
+        }
+
+        [Fact]
         public void LeagueIgnoresNextSeasonsEmptyTable()
         {
             var raw = TestData.Season();
@@ -476,6 +572,32 @@ namespace SeasonReview.Tests
             Assert.False(SeasonEnd.Evaluate(r).Ended);
         }
 
+        private static GameRecord CheckWithPlayOffs(int pending)
+        {
+            var r = Check(0);
+            r.Lists[SeasonEnd.FixtureList][0].Lists[SeasonEnd.FixtureList] =
+                TestData.SeasonWithPlayOffs(pending).Items(SeasonSpec.Fixtures)[0].Items(SeasonSpec.Fixtures);
+            return r;
+        }
+
+        [Fact]
+        public void PlayedPlayOffsAreNotLeagueMatches()
+        {
+            var status = SeasonEnd.Evaluate(CheckWithPlayOffs(0));
+            Assert.True(status.Ended, status.Reason);
+            Assert.Equal(6, status.LeaguePlayed);
+        }
+
+        [Fact]
+        public void WaitsForPendingPlayOffs()
+        {
+            var status = SeasonEnd.Evaluate(CheckWithPlayOffs(1));
+            Assert.False(status.Ended);
+            Assert.Equal(0, status.LeagueRemaining);
+            Assert.Equal(1, status.PlayOffsRemaining);
+            Assert.Contains("play-off", status.Reason);
+        }
+
         [Fact]
         public void KeyIdentifiesCareerClubAndSeason()
         {
@@ -523,6 +645,30 @@ namespace SeasonReview.Tests
             var html = HtmlRenderer.Render(doc);
             Assert.DoesNotContain("<script>", html);
             Assert.Contains("&lt;script&gt;alert(1)&lt;/script&gt; &amp; co", html);
+        }
+
+        [Fact]
+        public void PlayOffsAndShootoutsAreLabelled()
+        {
+            var raw = TestData.SeasonWithPlayOffs();
+            var final = raw.Items(SeasonSpec.Fixtures)[0].Items(SeasonSpec.Fixtures).Last();
+            final.Values["AwayScore"] = "1"; // 1-1, Lower Town win the shootout
+            final.Values["HomeTeamWon"] = "True";
+            var data = SeasonDataBuilder.Build(raw, _ => { });
+            var english = MarkdownRenderer.Render(ReportBuilder.Build(data, TestData.English(), TestData.Money, "test"));
+            Assert.Contains("Example League (play-offs)", english);
+            Assert.Contains("Lower Town (away) 1-1 (lost on penalties)", english);
+            var turkish = MarkdownRenderer.Render(ReportBuilder.Build(data, TestData.Turkish(), TestData.Money, "test"));
+            Assert.Contains("Example League (play-off)", turkish);
+            Assert.Contains("(penaltılarla kaybetti)", turkish);
+        }
+
+        [Fact]
+        public void PendingPlayOffsGiveAnInterimNotice()
+        {
+            var data = SeasonDataBuilder.Build(TestData.SeasonWithPlayOffs(pending: 1), _ => { });
+            var doc = ReportBuilder.Build(data, TestData.English(), TestData.Money, "test");
+            Assert.Equal("Interim report: the league's play-offs are not over yet.", doc.Notice);
         }
 
         [Fact]

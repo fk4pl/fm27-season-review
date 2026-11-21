@@ -43,6 +43,7 @@ common.free = Bedelsiz
 title = {club}: {season} Sezon Değerlendirmesi
 subtitle = {division} · rapor tarihi {date}
 interim = Ara rapor: lig sezonu henüz bitmedi ({remaining} kaldı).
+interim.playoffs = Ara rapor: lig play-off'ları henüz bitmedi.
 footer.generated = Season Review {version} tarafından {date} (oyun içi tarih) tarihinde oluşturuldu.
 footer.language = Yönetim ve taraftar görüşleri ile turnuva adları oyundan alıntıdır ve oyunun dilindedir. Yönetim hedefleri, sakatlık adları ve mali durum, lang/tr.txt sözlüğünde karşılığı varsa Türkçeye çevrilir; yoksa oyundaki gibi kalır.
 footer.money = Tutarlar oyunda kullandığınız para biriminde gösterilir.
@@ -83,6 +84,9 @@ summary.moment.scorer = Gol kralı: {player}, {goals}.
 cups.competition = Turnuva
 cups.record = O / G / B / M
 cups.last = Son maç
+cups.playoffs = {competition} (play-off)
+match.penaltywin = penaltılarla kazandı
+match.penaltyloss = penaltılarla kaybetti
 
 league.split = Durum
 league.played = O
