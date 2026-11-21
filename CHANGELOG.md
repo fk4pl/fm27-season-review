@@ -20,6 +20,11 @@ All notable changes to this project are documented here. The format follows
   key. The counter is now left out, and entries written by older versions are read the same way,
   so seasons already in the list are not reported again.
 
+### Changed
+
+- The log now says when a finished season is skipped because it already has a report, once per
+  season and game session, with the file to edit to allow a new report.
+
 ### Documentation
 
 - README: a "Hotkey conflicts" section on changing `Hotkey` (Ctrl+F8) and `PanelHotkey` (F10), and

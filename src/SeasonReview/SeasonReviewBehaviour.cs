@@ -1,4 +1,5 @@
 using System;
+using System.IO;
 using UnityEngine;
 
 namespace SeasonReview
@@ -54,6 +55,7 @@ namespace SeasonReview
 
         private readonly Il2CppSystem.Object _owner; // owns the game-side subscriptions
         private string _lastLoggedStatus;
+        private string _lastSkippedKey; // "already reported" is logged once per season and session
 
         // In-game panel: its read shares the reader but never the report path below.
         private readonly ReaderTurns _turns = new ReaderTurns();
@@ -207,7 +209,17 @@ namespace SeasonReview
             if (!status.Ended) return;
 
             _reported ??= new ReportedSeasons(Plugin.StatePath());
-            if (_reported.Contains(status.Key)) return;
+            if (_reported.Contains(status.Key))
+            {
+                // The key itself is not logged: it contains the career's save name.
+                if (status.Key != _lastSkippedKey)
+                {
+                    _lastSkippedKey = status.Key;
+                    Plugin.L.LogInfo($"Season check: {status.Club} {status.Season}: already has a report, not writing it again "
+                                     + $"(delete its line in {Path.GetFileName(Plugin.StatePath())} to allow a new one).");
+                }
+                return;
+            }
 
             Plugin.L.LogInfo($"{status.Club}: the {status.Division} {status.Season} season is over. Writing the season review...");
             _seasonKey = status.Key;
